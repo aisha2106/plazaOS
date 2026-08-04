@@ -13,6 +13,7 @@ import { ReminderDetail } from './routes/admin/reminders/ReminderDetail'
 import { ReminderNew } from './routes/admin/reminders/ReminderNew'
 import { RemindersList } from './routes/admin/reminders/RemindersList'
 import { TenantDetail } from './routes/admin/tenants/TenantDetail'
+import { TenantNew } from './routes/admin/tenants/TenantNew'
 import { TenantsList } from './routes/admin/tenants/TenantsList'
 import { UnitDetail } from './routes/admin/units/UnitDetail'
 import { UnitNew } from './routes/admin/units/UnitNew'
@@ -47,6 +48,7 @@ function App() {
           <Route path="units/new" element={<UnitNew />} />
           <Route path="units/:unitId" element={<UnitDetail />} />
           <Route path="tenants" element={<TenantsList />} />
+          <Route path="tenants/new" element={<TenantNew />} />
           <Route path="tenants/:tenantId" element={<TenantDetail />} />
           <Route path="payments" element={<PaymentsList />} />
           <Route path="payments/new" element={<PaymentNew />} />

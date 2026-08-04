@@ -107,6 +107,8 @@ export interface UpdateUnitInput {
   sizeSqft?: number
   monthlyRent?: number
   status?: UnitStatus
+  tenantId?: string
+  tenantName?: string
 }
 
 /** TODO: becomes `PATCH /units/:unitId` once the backend is reachable — signature stays the same. */
