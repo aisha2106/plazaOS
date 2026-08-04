@@ -1,32 +1,40 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Card, StatusBadge, Table, Text } from '../../../components'
+import { Button, Card, Input, StatusBadge, Table, Text } from '../../../components'
 import type { TableColumn } from '../../../components'
 import { BackLink } from '../components/BackLink'
 import { DetailField } from '../components/DetailField'
 import { PageHeader } from '../components/PageHeader'
-import { getTenantById, mockMaintenanceRequests, mockPayments } from '../data/mockData'
-import type { MaintenanceRequest, Payment, RentStatus, TenantStatus } from '../data/types'
+import { Select } from '../components/Select'
+import { mockMaintenanceRequests, mockPayments } from '../data/mockData'
+import type { AccountStatus, MaintenanceRequest, Payment, RentStatus, TenantStatus } from '../data/types'
+import { getTenant, generateTempPassword, updateTenant } from './data'
+import { TempPasswordReveal } from './TempPasswordReveal'
 
-const rentStatusLabel: Record<RentStatus, string> = {
-  paid: 'Paid',
-  due: 'Due',
-  overdue: 'Overdue',
-}
+const rentStatusOptions: { value: RentStatus; label: string }[] = [
+  { value: 'paid', label: 'Paid' },
+  { value: 'due', label: 'Due' },
+  { value: 'overdue', label: 'Overdue' },
+]
 
-const rentStatusVariant: Record<RentStatus, 'success' | 'warning' | 'danger'> = {
-  paid: 'success',
-  due: 'warning',
-  overdue: 'danger',
-}
-
-const accountStatusLabel: Record<TenantStatus, string> = {
+const leaseStatusLabel: Record<TenantStatus, string> = {
   active: 'Active',
   inactive: 'Inactive',
 }
 
-const accountStatusVariant: Record<TenantStatus, 'success' | 'danger'> = {
+const leaseStatusVariant: Record<TenantStatus, 'success' | 'danger'> = {
   active: 'success',
   inactive: 'danger',
+}
+
+const accountStatusLabel: Record<AccountStatus, string> = {
+  temporary: 'Temporary password',
+  active: 'Active',
+}
+
+const accountStatusVariant: Record<AccountStatus, 'warning' | 'success'> = {
+  temporary: 'warning',
+  active: 'success',
 }
 
 const paymentColumns: TableColumn<Payment>[] = [
@@ -76,10 +84,18 @@ const maintenanceColumns: TableColumn<MaintenanceRequest>[] = [
   },
 ]
 
-// TODO: fetch this tenant from GET /tenants/:tenantId once the backend is reachable.
+// TODO: fetch this tenant from GET /tenants/:tenantId and save via PATCH
+// once the backend is reachable — see getTenant()/updateTenant() in ./data.ts.
 export function TenantDetail() {
   const { tenantId } = useParams<{ tenantId: string }>()
-  const tenant = tenantId ? getTenantById(tenantId) : undefined
+  const tenant = tenantId ? getTenant(tenantId) : undefined
+
+  const [leaseEnd, setLeaseEnd] = useState(tenant?.leaseEnd ?? '')
+  const [monthlyRent, setMonthlyRent] = useState(tenant ? String(tenant.monthlyRent) : '')
+  const [rentStatus, setRentStatus] = useState<RentStatus>(tenant?.rentStatus ?? 'due')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [resetTempPassword, setResetTempPassword] = useState<string | null>(null)
 
   if (!tenant) {
     return (
@@ -90,32 +106,98 @@ export function TenantDetail() {
     )
   }
 
-  const tenantPayments = mockPayments.filter((payment) => payment.tenantId === tenant.id)
-  const tenantMaintenance = mockMaintenanceRequests.filter((request) => request.tenantId === tenant.id)
+  const currentTenant = tenant
+
+  const hasChanges =
+    leaseEnd !== currentTenant.leaseEnd || Number(monthlyRent) !== currentTenant.monthlyRent || rentStatus !== currentTenant.rentStatus
+
+  function handleSave() {
+    setIsSaving(true)
+    updateTenant(currentTenant.id, {
+      leaseEnd,
+      monthlyRent: Number(monthlyRent),
+      rentStatus,
+    })
+    window.setTimeout(() => {
+      setIsSaving(false)
+    }, 300)
+  }
+
+  function handleResetPassword() {
+    setIsResettingPassword(true)
+    const tempPassword = generateTempPassword()
+    // Reset puts the account back in the same "temporary" state a brand-new
+    // account starts in, so the accountStatus badge and mustChangePassword
+    // stay consistent with each other.
+    updateTenant(currentTenant.id, { accountStatus: 'temporary', mustChangePassword: true })
+    window.setTimeout(() => {
+      setIsResettingPassword(false)
+      setResetTempPassword(tempPassword)
+    }, 300)
+  }
+
+  const tenantPayments = mockPayments.filter((payment) => payment.tenantId === currentTenant.id)
+  const tenantMaintenance = mockMaintenanceRequests.filter((request) => request.tenantId === currentTenant.id)
 
   return (
     <div>
       <BackLink to="/admin/tenants" label="Back to tenants" />
       <PageHeader
-        title={tenant.name}
-        action={<StatusBadge variant={accountStatusVariant[tenant.status]} label={accountStatusLabel[tenant.status]} />}
+        title={currentTenant.name}
+        action={<StatusBadge variant={leaseStatusVariant[currentTenant.status]} label={leaseStatusLabel[currentTenant.status]} />}
       />
 
       <Card className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <DetailField label="Unit">
-          <Link to={`/admin/units/${tenant.unitId}`} className="text-primary hover:text-primary-light">
-            {tenant.unitNumber}
+          <Link to={`/admin/units/${currentTenant.unitId}`} className="text-primary hover:text-primary-light">
+            {currentTenant.unitNumber}
           </Link>
         </DetailField>
-        <DetailField label="Rent status">
-          <StatusBadge variant={rentStatusVariant[tenant.rentStatus]} label={rentStatusLabel[tenant.rentStatus]} />
-        </DetailField>
-        <DetailField label="Email">{tenant.email}</DetailField>
-        <DetailField label="Phone">{tenant.phone}</DetailField>
-        <DetailField label="Lease term">
-          {tenant.leaseStart} – {tenant.leaseEnd}
-        </DetailField>
-        <DetailField label="Monthly rent">${tenant.monthlyRent.toLocaleString()}</DetailField>
+        <DetailField label="Email">{currentTenant.email}</DetailField>
+        <DetailField label="Phone">{currentTenant.phone}</DetailField>
+        <DetailField label="Lease start">{currentTenant.leaseStart}</DetailField>
+        <Input label="Lease end" type="date" value={leaseEnd} onChange={(event) => setLeaseEnd(event.target.value)} />
+        <Input
+          label="Monthly rent"
+          type="number"
+          min="0"
+          step="0.01"
+          value={monthlyRent}
+          onChange={(event) => setMonthlyRent(event.target.value)}
+        />
+        <Select
+          label="Rent status"
+          value={rentStatus}
+          onChange={(event) => setRentStatus(event.target.value as RentStatus)}
+          options={rentStatusOptions}
+        />
+        <div className="flex items-end">
+          <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
+            {isSaving ? 'Saving…' : 'Save changes'}
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="mb-6">
+        <Text variant="h3" className="mb-3">
+          Account
+        </Text>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <DetailField label="Status">
+            <StatusBadge
+              variant={accountStatusVariant[currentTenant.accountStatus]}
+              label={accountStatusLabel[currentTenant.accountStatus]}
+            />
+          </DetailField>
+          <Button variant="secondary" onClick={handleResetPassword} disabled={isResettingPassword}>
+            {isResettingPassword ? 'Resetting…' : 'Reset password'}
+          </Button>
+        </div>
+        {resetTempPassword ? (
+          <div className="mt-4">
+            <TempPasswordReveal email={currentTenant.email} tempPassword={resetTempPassword} />
+          </div>
+        ) : null}
       </Card>
 
       <div className="mb-6">
