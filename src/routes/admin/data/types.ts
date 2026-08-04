@@ -13,6 +13,9 @@ export interface Unit {
 
 export type TenantStatus = 'active' | 'inactive'
 export type RentStatus = 'paid' | 'due' | 'overdue'
+// 'temporary' = still on the system-generated password from account
+// creation (or a reset); 'active' = they've set their own password.
+export type AccountStatus = 'temporary' | 'active'
 
 export interface Tenant {
   id: string
@@ -26,6 +29,8 @@ export interface Tenant {
   monthlyRent: number
   rentStatus: RentStatus
   status: TenantStatus
+  accountStatus: AccountStatus
+  mustChangePassword: boolean
 }
 
 export type PaymentStatus = 'paid' | 'pending' | 'failed'

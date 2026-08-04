@@ -24,12 +24,12 @@ export const mockUnits: Unit[] = [
 ]
 
 export const mockTenants: Tenant[] = [
-  { id: 'tenant-1', name: 'Jane Cooper', email: 'jane.cooper@example.com', phone: '+1 (555) 010-1234', unitId: 'unit-1', unitNumber: 'A-101', leaseStart: '2025-02-01', leaseEnd: '2026-01-31', monthlyRent: 1200, rentStatus: 'paid', status: 'active' },
-  { id: 'tenant-2', name: 'Devon Lane', email: 'devon.lane@example.com', phone: '+1 (555) 010-2345', unitId: 'unit-2', unitNumber: 'A-102', leaseStart: '2025-05-15', leaseEnd: '2026-05-14', monthlyRent: 1100, rentStatus: 'due', status: 'active' },
-  { id: 'tenant-3', name: 'Wade Warren', email: 'wade.warren@example.com', phone: '+1 (555) 010-3456', unitId: 'unit-3', unitNumber: 'B-201', leaseStart: '2024-11-01', leaseEnd: '2025-10-31', monthlyRent: 1600, rentStatus: 'overdue', status: 'active' },
-  { id: 'tenant-4', name: 'Esther Howard', email: 'esther.howard@example.com', phone: '+1 (555) 010-4567', unitId: 'unit-5', unitNumber: 'B-204', leaseStart: '2025-03-01', leaseEnd: '2026-02-28', monthlyRent: 1600, rentStatus: 'paid', status: 'active' },
-  { id: 'tenant-5', name: 'Cameron Williamson', email: 'cameron.williamson@example.com', phone: '+1 (555) 010-5678', unitId: 'unit-6', unitNumber: 'C-301', leaseStart: '2025-07-01', leaseEnd: '2026-06-30', monthlyRent: 2100, rentStatus: 'paid', status: 'active' },
-  { id: 'tenant-6', name: 'Guy Hawkins', email: 'guy.hawkins@example.com', phone: '+1 (555) 010-6789', unitId: 'unit-8', unitNumber: 'C-310', leaseStart: '2024-08-01', leaseEnd: '2025-07-31', monthlyRent: 2150, rentStatus: 'due', status: 'inactive' },
+  { id: 'tenant-1', name: 'Jane Cooper', email: 'jane.cooper@example.com', phone: '+1 (555) 010-1234', unitId: 'unit-1', unitNumber: 'A-101', leaseStart: '2025-02-01', leaseEnd: '2026-01-31', monthlyRent: 1200, rentStatus: 'paid', status: 'active', accountStatus: 'active', mustChangePassword: false },
+  { id: 'tenant-2', name: 'Devon Lane', email: 'devon.lane@example.com', phone: '+1 (555) 010-2345', unitId: 'unit-2', unitNumber: 'A-102', leaseStart: '2025-05-15', leaseEnd: '2026-05-14', monthlyRent: 1100, rentStatus: 'due', status: 'active', accountStatus: 'active', mustChangePassword: false },
+  { id: 'tenant-3', name: 'Wade Warren', email: 'wade.warren@example.com', phone: '+1 (555) 010-3456', unitId: 'unit-3', unitNumber: 'B-201', leaseStart: '2024-11-01', leaseEnd: '2025-10-31', monthlyRent: 1600, rentStatus: 'overdue', status: 'active', accountStatus: 'active', mustChangePassword: false },
+  { id: 'tenant-4', name: 'Esther Howard', email: 'esther.howard@example.com', phone: '+1 (555) 010-4567', unitId: 'unit-5', unitNumber: 'B-204', leaseStart: '2025-03-01', leaseEnd: '2026-02-28', monthlyRent: 1600, rentStatus: 'paid', status: 'active', accountStatus: 'active', mustChangePassword: false },
+  { id: 'tenant-5', name: 'Cameron Williamson', email: 'cameron.williamson@example.com', phone: '+1 (555) 010-5678', unitId: 'unit-6', unitNumber: 'C-301', leaseStart: '2025-07-01', leaseEnd: '2026-06-30', monthlyRent: 2100, rentStatus: 'paid', status: 'active', accountStatus: 'active', mustChangePassword: false },
+  { id: 'tenant-6', name: 'Guy Hawkins', email: 'guy.hawkins@example.com', phone: '+1 (555) 010-6789', unitId: 'unit-8', unitNumber: 'C-310', leaseStart: '2024-08-01', leaseEnd: '2025-07-31', monthlyRent: 2150, rentStatus: 'due', status: 'inactive', accountStatus: 'active', mustChangePassword: false },
 ]
 
 export const mockPayments: Payment[] = [
