@@ -24,6 +24,7 @@ There is no public registration. Tenant accounts are created by the admin when a
 - Pays rent through the payment gateway
 - Submits maintenance requests with image uploads
 - Views announcements and notifications
+- Views a calendar (rent due dates, reminders relevant to them)
 - Manages their own profile
 
 ## Core Features
@@ -38,8 +39,9 @@ There is no public registration. Tenant accounts are created by the admin when a
 | Reminders | Automatic via node-cron on the backend; admin can also send manual reminders to one tenant, a group, or everyone |
 | Notifications | In-app and email, for payments, rent reminders, maintenance updates, announcements |
 | Receipts | Downloadable, tied to individual payments |
+| Calendar | Admin manages events; tenants have a read view of relevant dates |
 
-Detail routes exist for individual tenants, units, payments, and maintenance requests — each viewable and manageable on its own page, not only in list views.
+Detail routes exist for individual tenants, units, payments, maintenance requests, and reminders — each viewable and manageable on its own page, not only in list views.
 
 ## Uploads
 
@@ -51,42 +53,53 @@ There is no general document upload feature — it was deliberately removed from
 
 ## Architecture
 
-```
 React frontend (this repo)
-        ↓ REST calls
+↓ REST calls
 Next.js backend (API routes only — no pages)
-        ↓
+↓
 MongoDB
-```
+
 
 The frontend does not render any pages itself via Next.js — Next.js here is a backend, not a full-stack framework in this project. All UI lives in this React app.
 
 ## Route Map
 
-**Admin**
-- `/admin` — dashboard home
-- `/admin/units`, `/admin/units/:id`
-- `/admin/tenants`, `/admin/tenants/:id`
-- `/admin/payments/new`, `/admin/payments/:id`
-- `/admin/maintenance`, `/admin/maintenance/:id`
-- `/admin/announcements`
-- `/admin/reminders`
-- `/admin/calendar`
-
-**Tenant**
-- `/tenant` — home (unit + rent status)
-- `/tenant/profile`
-- `/tenant/payments`, `/tenant/payments/new`
-- `/tenant/maintenance`, `/tenant/maintenance/new`
-- `/tenant/announcements`
-- `/tenant/notifications`
-
 **Shared**
 - `/login`
 
+**Admin**
+- `/admin/dashboard`
+- `/admin/units`
+- `/admin/units/:unitId`
+- `/admin/tenants`
+- `/admin/tenants/:tenantId`
+- `/admin/payments`
+- `/admin/payments/new`
+- `/admin/payments/:paymentId`
+- `/admin/maintenance`
+- `/admin/maintenance/:requestId`
+- `/admin/announcements`
+- `/admin/calendar`
+- `/admin/reminders`
+- `/admin/reminders/new`
+- `/admin/reminders/:reminderId`
+
+**Tenant**
+- `/tenant/dashboard`
+- `/tenant/payments`
+- `/tenant/payments/new`
+- `/tenant/payments/:paymentId`
+- `/tenant/maintenance`
+- `/tenant/maintenance/new`
+- `/tenant/maintenance/:requestId`
+- `/tenant/announcements`
+- `/tenant/notifications`
+- `/tenant/calendar`
+- `/tenant/profile`
+
 ## Design System
 
-See `DESIGN.md` (or the design guide shared separately) for the full color palette, typography scale, spacing rules, and component conventions. In short:
+See the shared design guide for the full color palette, typography scale, spacing rules, and component conventions. In short:
 
 - Primary color `#3730A3`, Inter font, 4px spacing base unit, 12px card radius / 8px button radius
 - Status is always paired with a label or icon, never color alone
