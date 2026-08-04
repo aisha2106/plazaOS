@@ -15,6 +15,7 @@ import { RemindersList } from './routes/admin/reminders/RemindersList'
 import { TenantDetail } from './routes/admin/tenants/TenantDetail'
 import { TenantsList } from './routes/admin/tenants/TenantsList'
 import { UnitDetail } from './routes/admin/units/UnitDetail'
+import { UnitNew } from './routes/admin/units/UnitNew'
 import { UnitsList } from './routes/admin/units/UnitsList'
 import { DevKit } from './routes/dev/DevKit'
 import { Login } from './routes/Login'
@@ -43,6 +44,7 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="units" element={<UnitsList />} />
+          <Route path="units/new" element={<UnitNew />} />
           <Route path="units/:unitId" element={<UnitDetail />} />
           <Route path="tenants" element={<TenantsList />} />
           <Route path="tenants/:tenantId" element={<TenantDetail />} />
