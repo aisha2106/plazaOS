@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Button, Card, StatusBadge, Text } from '../../../components'
+import { Button, Card, Input, StatusBadge, Text } from '../../../components'
 import { BackLink } from '../components/BackLink'
 import { DetailField } from '../components/DetailField'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
-import { getMaintenanceRequestById } from '../data/mockData'
+import { Textarea } from '../components/Textarea'
 import type { MaintenancePriority, MaintenanceStatus } from '../data/types'
+import { getMaintenanceRequest, updateMaintenanceRequest } from './data'
 
 const statusLabel: Record<MaintenanceStatus, string> = {
   open: 'Open',
@@ -32,16 +33,26 @@ const priorityLabel: Record<MaintenancePriority, string> = {
   high: 'High',
 }
 
-// TODO: fetch this request from GET /maintenance/:requestId once the backend is reachable.
+const priorityOptions: { value: MaintenancePriority; label: string }[] = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+]
+
+// TODO: fetch this request from GET /maintenance/:requestId and save via
+// PATCH once the backend is reachable — see getMaintenanceRequest()/
+// updateMaintenanceRequest() in ./data.ts.
 export function MaintenanceDetail() {
   const { requestId } = useParams<{ requestId: string }>()
-  const request = requestId ? getMaintenanceRequestById(requestId) : undefined
+  const request = requestId ? getMaintenanceRequest(requestId) : undefined
 
-  const [status, setStatus] = useState<MaintenanceStatus | null>(request?.status ?? null)
+  const [status, setStatus] = useState<MaintenanceStatus>(request?.status ?? 'open')
+  const [priority, setPriority] = useState<MaintenancePriority>(request?.priority ?? 'low')
+  const [notes, setNotes] = useState(request?.notes ?? '')
+  const [resolvedAt, setResolvedAt] = useState<string | null>(request?.resolvedAt ?? null)
   const [isSaving, setIsSaving] = useState(false)
-  const [savedStatus, setSavedStatus] = useState<MaintenanceStatus | null>(request?.status ?? null)
 
-  if (!request || !status) {
+  if (!request) {
     return (
       <div>
         <BackLink to="/admin/maintenance" label="Back to maintenance" />
@@ -50,11 +61,30 @@ export function MaintenanceDetail() {
     )
   }
 
-  function handleSaveStatus() {
+  const currentRequest = request
+
+  const hasChanges =
+    status !== currentRequest.status ||
+    priority !== currentRequest.priority ||
+    notes !== currentRequest.notes ||
+    resolvedAt !== currentRequest.resolvedAt
+
+  function handleStatusChange(nextStatus: MaintenanceStatus) {
+    setStatus(nextStatus)
+    if (nextStatus === 'resolved' && !resolvedAt) {
+      setResolvedAt(new Date().toISOString().slice(0, 10))
+    }
+  }
+
+  function handleSave() {
     setIsSaving(true)
-    // TODO: await api.patch(`/maintenance/${request.id}`, { status })
+    updateMaintenanceRequest(currentRequest.id, {
+      status,
+      priority,
+      notes,
+      resolvedAt: status === 'resolved' ? resolvedAt : null,
+    })
     window.setTimeout(() => {
-      setSavedStatus(status)
       setIsSaving(false)
     }, 300)
   }
@@ -63,42 +93,70 @@ export function MaintenanceDetail() {
     <div>
       <BackLink to="/admin/maintenance" label="Back to maintenance" />
       <PageHeader
-        title={request.title}
-        action={savedStatus ? <StatusBadge variant={statusVariant[savedStatus]} label={statusLabel[savedStatus]} /> : null}
+        title={currentRequest.title}
+        action={<StatusBadge variant={statusVariant[currentRequest.status]} label={statusLabel[currentRequest.status]} />}
       />
 
       <Card className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <DetailField label="Tenant">
-          <Link to={`/admin/tenants/${request.tenantId}`} className="text-primary hover:text-primary-light">
-            {request.tenantName}
+          <Link to={`/admin/tenants/${currentRequest.tenantId}`} className="text-primary hover:text-primary-light">
+            {currentRequest.tenantName}
           </Link>
         </DetailField>
-        <DetailField label="Unit">{request.unitNumber}</DetailField>
-        <DetailField label="Priority">{priorityLabel[request.priority]}</DetailField>
-        <DetailField label="Submitted">{request.createdAt}</DetailField>
+        <DetailField label="Unit">
+          <Link to={`/admin/units/${currentRequest.unitId}`} className="text-primary hover:text-primary-light">
+            {currentRequest.unitNumber}
+          </Link>
+        </DetailField>
+        <DetailField label="Submitted">{currentRequest.createdAt}</DetailField>
+        <DetailField label="Priority">{priorityLabel[currentRequest.priority]}</DetailField>
         <div className="sm:col-span-2">
-          <DetailField label="Description">{request.description}</DetailField>
+          <DetailField label="Description">{currentRequest.description}</DetailField>
         </div>
         <div className="sm:col-span-2">
-          <DetailField label="Images">
-            {request.images.length > 0 ? `${request.images.length} image(s) attached` : 'No images attached'}
+          <DetailField label="Photo">
+            <img
+              src={currentRequest.imageUrl}
+              alt={`Submitted photo for ${currentRequest.title}`}
+              className="mt-1 max-h-80 rounded-card border border-slate-200 object-cover"
+            />
           </DetailField>
         </div>
       </Card>
 
-      <Card className="max-w-sm">
+      <Card className="max-w-lg">
         <Text variant="h3" className="mb-3">
-          Update status
+          Update request
         </Text>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <Select
             label="Status"
             value={status}
-            onChange={(event) => setStatus(event.target.value as MaintenanceStatus)}
+            onChange={(event) => handleStatusChange(event.target.value as MaintenanceStatus)}
             options={statusOptions}
           />
-          <Button onClick={handleSaveStatus} disabled={isSaving || status === savedStatus}>
-            {isSaving ? 'Saving…' : 'Save status'}
+          <Select
+            label="Priority"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value as MaintenancePriority)}
+            options={priorityOptions}
+          />
+          {status === 'resolved' ? (
+            <Input
+              label="Resolved on"
+              type="date"
+              value={resolvedAt ?? ''}
+              onChange={(event) => setResolvedAt(event.target.value || null)}
+            />
+          ) : null}
+          <Textarea
+            label="Notes"
+            placeholder="Internal notes about this request"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+          <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
+            {isSaving ? 'Saving…' : 'Save changes'}
           </Button>
         </div>
       </Card>
