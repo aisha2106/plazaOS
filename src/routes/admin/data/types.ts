@@ -1,0 +1,99 @@
+export type UnitStatus = 'occupied' | 'vacant' | 'maintenance'
+
+export interface Unit {
+  id: string
+  unitNumber: string
+  floor: string
+  sizeSqft: number
+  monthlyRent: number
+  status: UnitStatus
+  tenantId?: string
+  tenantName?: string
+}
+
+export type TenantStatus = 'active' | 'inactive'
+export type RentStatus = 'paid' | 'due' | 'overdue'
+
+export interface Tenant {
+  id: string
+  name: string
+  email: string
+  phone: string
+  unitId: string
+  unitNumber: string
+  leaseStart: string
+  leaseEnd: string
+  monthlyRent: number
+  rentStatus: RentStatus
+  status: TenantStatus
+}
+
+export type PaymentStatus = 'paid' | 'pending' | 'failed'
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'check' | 'gateway'
+
+export interface Payment {
+  id: string
+  tenantId: string
+  tenantName: string
+  unitNumber: string
+  amount: number
+  method: PaymentMethod
+  status: PaymentStatus
+  date: string
+  note?: string
+  recordedBy?: string
+  receiptAvailable: boolean
+}
+
+export type MaintenanceStatus = 'open' | 'in_progress' | 'resolved'
+export type MaintenancePriority = 'low' | 'medium' | 'high'
+
+export interface MaintenanceRequest {
+  id: string
+  tenantId: string
+  tenantName: string
+  unitNumber: string
+  title: string
+  description: string
+  status: MaintenanceStatus
+  priority: MaintenancePriority
+  images: string[]
+  createdAt: string
+}
+
+export type AnnouncementAudience = 'all' | 'selected'
+
+export interface Announcement {
+  id: string
+  title: string
+  body: string
+  audience: AnnouncementAudience
+  audienceTenantIds: string[]
+  createdAt: string
+  author: string
+}
+
+export type ReminderType = 'automatic' | 'manual'
+export type ReminderTarget = 'tenant' | 'group' | 'everyone'
+export type ReminderStatus = 'scheduled' | 'sent' | 'failed'
+
+export interface Reminder {
+  id: string
+  title: string
+  message: string
+  type: ReminderType
+  target: ReminderTarget
+  targetLabel: string
+  scheduledFor: string
+  status: ReminderStatus
+}
+
+export type CalendarEventType = 'lease_renewal' | 'reminder' | 'payment_due' | 'other'
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  type: CalendarEventType
+  date: string
+  relatedLabel?: string
+}
