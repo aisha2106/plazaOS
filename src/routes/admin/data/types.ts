@@ -57,13 +57,16 @@ export interface MaintenanceRequest {
   id: string
   tenantId: string
   tenantName: string
+  unitId: string
   unitNumber: string
   title: string
   description: string
   status: MaintenanceStatus
   priority: MaintenancePriority
-  images: string[]
+  imageUrl: string
+  notes: string
   createdAt: string
+  resolvedAt: string | null
 }
 
 export type AnnouncementAudience = 'all' | 'selected'
