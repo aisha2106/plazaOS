@@ -3,6 +3,7 @@ import { Layout } from './components'
 import { AuthProvider } from './context/AuthContext'
 import { AdminDashboard } from './routes/admin/AdminDashboard'
 import { AdminCalendar } from './routes/admin/calendar/AdminCalendar'
+import { CalendarNew } from './routes/admin/calendar/CalendarNew'
 import { Announcements } from './routes/admin/announcements/Announcements'
 import { MaintenanceDetail } from './routes/admin/maintenance/MaintenanceDetail'
 import { MaintenanceList } from './routes/admin/maintenance/MaintenanceList'
@@ -58,6 +59,7 @@ function App() {
           <Route path="maintenance/:requestId" element={<MaintenanceDetail />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="calendar" element={<AdminCalendar />} />
+          <Route path="calendar/new" element={<CalendarNew />} />
           <Route path="reminders" element={<RemindersList />} />
           <Route path="reminders/new" element={<ReminderNew />} />
           <Route path="reminders/:reminderId" element={<ReminderDetail />} />
