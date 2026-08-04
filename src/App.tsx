@@ -21,6 +21,7 @@ import { UnitsList } from './routes/admin/units/UnitsList'
 import { DevKit } from './routes/dev/DevKit'
 import { Login } from './routes/Login'
 import { ProtectedRoute } from './routes/ProtectedRoute'
+import { SetPassword } from './routes/tenant/SetPassword'
 import { TenantHome } from './routes/tenant/TenantHome'
 
 function App() {
@@ -71,6 +72,7 @@ function App() {
           }
         >
           <Route index element={<TenantHome />} />
+          <Route path="set-password" element={<SetPassword />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
