@@ -43,12 +43,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser())
 
   const login = useCallback(async (email: string, password: string) => {
-    const response = await api.post<LoginResponse>('/auth/login', { email, password })
-    setToken(response.token)
-    localStorage.setItem(USER_KEY, JSON.stringify(response.user))
-    setTokenState(response.token)
-    setUser(response.user)
-    return response.user
+    try {
+      const response = await api.post<LoginResponse>('/auth/login', { email, password })
+      setToken(response.token)
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user))
+      setTokenState(response.token)
+      setUser(response.user)
+      return response.user
+    } catch (err: unknown) {
+      // DEVELOPMENT ONLY: If backend is not available in development, fall back to a local mock account.
+      // This block is safe to remove once the auth API is implemented.
+      const isDev = import.meta.env.DEV
+
+      // Check if the error is a network/connectivity issue or 404 (API not available)
+      const isNetworkError = err instanceof TypeError || (err instanceof Error && /failed to fetch/i.test(err.message))
+      const isNotFound = (err as any)?.status === 404
+
+      if (isDev && (isNetworkError || isNotFound)) {
+        // Console log for debugging (development only)
+        console.log('[DEV] Auth API unavailable, using mock authentication fallback')
+
+        // Mock accounts for development. Remove this when backend is ready.
+        const MOCK_ACCOUNTS: Record<string, { token: string; user: AuthUser }> = {
+          'tenant@plaza.test': {
+            token: 'dev-token-tenant',
+            user: {
+              id: 'dev-tenant-1',
+              name: 'Dev Tenant',
+              email: 'tenant@plaza.test',
+              role: 'tenant',
+            },
+          },
+          'admin@plaza.test': {
+            token: 'dev-token-admin',
+            user: {
+              id: 'dev-admin-1',
+              name: 'Dev Admin',
+              email: 'admin@plaza.test',
+              role: 'admin',
+            },
+          },
+        }
+
+        const account = MOCK_ACCOUNTS[email]
+        if (account && password === 'password123') {
+          // Populate AuthContext exactly as the real API would.
+          console.log(`[DEV] Mock login successful for ${email}`)
+          setToken(account.token)
+          localStorage.setItem(USER_KEY, JSON.stringify(account.user))
+          setTokenState(account.token)
+          setUser(account.user)
+          return account.user
+        }
+
+        // If credentials don't match mock accounts, fall through and throw the original error.
+        console.log(`[DEV] Mock login failed: invalid credentials for ${email}`)
+      }
+
+      throw err
+    }
   }, [])
 
   const logout = useCallback(() => {

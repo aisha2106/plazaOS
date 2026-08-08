@@ -6,6 +6,13 @@ import { DevKit } from './routes/dev/DevKit'
 import { Login } from './routes/Login'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { TenantHome } from './routes/tenant/TenantHome'
+import { Profile } from './routes/tenant/Profile'
+import { Payments } from './routes/tenant/Payments'
+import { PaymentsNew } from './routes/tenant/PaymentsNew'
+import { Maintenance } from './routes/tenant/Maintenance'
+import { MaintenanceNew } from './routes/tenant/MaintenanceNew'
+import { Announcements } from './routes/tenant/Announcements'
+import { Notifications } from './routes/tenant/Notifications'
 
 function App() {
   return (
@@ -36,6 +43,13 @@ function App() {
           }
         >
           <Route index element={<TenantHome />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="payments/new" element={<PaymentsNew />} />
+          <Route path="maintenance" element={<Maintenance />} />
+          <Route path="maintenance/new" element={<MaintenanceNew />} />
+          <Route path="announcements" element={<Announcements />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
