@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import { AdminDashboard } from './routes/admin/AdminDashboard'
 import { AdminCalendar } from './routes/admin/calendar/AdminCalendar'
 import { CalendarNew } from './routes/admin/calendar/CalendarNew'
-import { Announcements } from './routes/admin/announcements/Announcements'
+import { Announcements as AdminAnnouncements } from './routes/admin/announcements/Announcements'
 import { MaintenanceDetail } from './routes/admin/maintenance/MaintenanceDetail'
 import { MaintenanceList } from './routes/admin/maintenance/MaintenanceList'
 import { PaymentDetail } from './routes/admin/payments/PaymentDetail'
@@ -24,6 +24,13 @@ import { Login } from './routes/Login'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { SetPassword } from './routes/tenant/SetPassword'
 import { TenantHome } from './routes/tenant/TenantHome'
+import { Profile } from './routes/tenant/Profile'
+import { Payments } from './routes/tenant/Payments'
+import { PaymentsNew } from './routes/tenant/PaymentsNew'
+import { Maintenance } from './routes/tenant/Maintenance'
+import { MaintenanceNew } from './routes/tenant/MaintenanceNew'
+import { Announcements } from './routes/tenant/Announcements'
+import { Notifications } from './routes/tenant/Notifications'
 
 function App() {
   return (
@@ -57,7 +64,7 @@ function App() {
           <Route path="payments/:paymentId" element={<PaymentDetail />} />
           <Route path="maintenance" element={<MaintenanceList />} />
           <Route path="maintenance/:requestId" element={<MaintenanceDetail />} />
-          <Route path="announcements" element={<Announcements />} />
+          <Route path="announcements" element={<AdminAnnouncements />} />
           <Route path="calendar" element={<AdminCalendar />} />
           <Route path="calendar/new" element={<CalendarNew />} />
           <Route path="reminders" element={<RemindersList />} />
@@ -75,6 +82,13 @@ function App() {
         >
           <Route index element={<TenantHome />} />
           <Route path="set-password" element={<SetPassword />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="payments/new" element={<PaymentsNew />} />
+          <Route path="maintenance" element={<Maintenance />} />
+          <Route path="maintenance/new" element={<MaintenanceNew />} />
+          <Route path="announcements" element={<Announcements />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
