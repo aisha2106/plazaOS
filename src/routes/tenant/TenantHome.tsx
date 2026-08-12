@@ -6,6 +6,13 @@ import { usePayments } from '../../hooks/usePayments'
 import { useMaintenance } from '../../hooks/useMaintenance'
 import { useAnnouncements } from '../../hooks/useAnnouncements'
 import { useNotifications } from '../../hooks/useNotifications'
+import type { Payment, Announcement, NotificationItem, MaintenanceRequest, MaintenanceStatus } from '../../lib/types'
+
+const maintenanceStatusVariantMap: Record<MaintenanceStatus, 'info' | 'warning' | 'success'> = {
+  open: 'info',
+  in_progress: 'warning',
+  closed: 'success',
+}
 
 export function TenantHome() {
   const navigate = useNavigate()
@@ -21,10 +28,10 @@ export function TenantHome() {
   const notificationsList = notifications.data ?? []
 
   const paymentSummary = useMemo(() => {
-    const rows = payments.data?.data ?? []
+    const rows: Payment[] = payments.data?.data ?? []
     const summary = { paid: 0, pending: 0, overdue: 0 }
     for (const p of rows) {
-      summary[p.status] = (summary as any)[p.status] + 1
+      summary[p.status] += 1
     }
     return summary
   }, [payments.data])
@@ -58,15 +65,15 @@ export function TenantHome() {
             ) : null}
             <div className="flex items-center justify-between">
               <Text variant="body">Monthly rent</Text>
-              <Text variant="body">${profile?.monthlyRent ?? '—'}</Text>
+              <Text variant="body">{profile?.monthlyRent != null ? `$${profile.monthlyRent}` : 'Unavailable'}</Text>
             </div>
             <div className="flex items-center justify-between">
               <Text variant="body">Next due</Text>
-              <Text variant="body">{/* Placeholder until API provides next due */}2026-08-01</Text>
+              <Text variant="body">{profile?.nextDueDate ?? 'Unavailable'}</Text>
             </div>
             <div className="flex items-center justify-between">
               <Text variant="body">Balance</Text>
-              <Text variant="body">${/* Placeholder */}200</Text>
+              <Text variant="body">{profile?.balance != null ? `$${profile.balance}` : 'Unavailable'}</Text>
             </div>
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div>
@@ -94,10 +101,10 @@ export function TenantHome() {
                 <Button variant="secondary" onClick={() => payments.refetch()}>Retry</Button>
               </div>
             ) : (
-              <Table
+              <Table<Payment>
                 columns={[{ key: 'date', header: 'Date' }, { key: 'amount', header: 'Amount' }]}
-                data={(recentPayments as any) || []}
-                getRowKey={(r: any) => r.id}
+                data={recentPayments}
+                getRowKey={(r) => r.id}
               />
             )}
           </div>
@@ -112,10 +119,13 @@ export function TenantHome() {
                 <Button variant="secondary" onClick={() => maintenance.refetch()}>Retry</Button>
               </div>
             ) : (
-              <Table
-                columns={[{ key: 'title', header: 'Title' }, { key: 'status', header: 'Status' }]}
-                data={(recentMaintenance as any) || []}
-                getRowKey={(r: any) => r.id}
+              <Table<MaintenanceRequest>
+                columns={[
+                  { key: 'title', header: 'Title' },
+                  { key: 'status', header: 'Status', render: (request) => <StatusBadge variant={maintenanceStatusVariantMap[request.status]} label={request.status} /> },
+                ]}
+                data={recentMaintenance}
+                getRowKey={(r) => r.id}
               />
             )}
           </div>
@@ -132,17 +142,17 @@ export function TenantHome() {
                 <Button variant="secondary" onClick={() => announcements.refetch()}>Retry</Button>
               </div>
             ) : (
-              latestAnnouncements.map((a: any) => (
+              latestAnnouncements.map((a: Announcement) => (
                 <div key={a.id} className="flex flex-col gap-3 rounded border border-slate-200 p-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <Text variant="h3" className="truncate">{a.title}</Text>
-                  <Text variant="bodySmall" className="mt-1 text-slate-500">
-                    {a.body}
-                  </Text>
+                  <div className="min-w-0">
+                    <Text variant="h3" className="truncate">{a.title}</Text>
+                    <Text variant="bodySmall" className="mt-1 text-slate-500">
+                      {a.body}
+                    </Text>
+                  </div>
+                  {a.important ? <StatusBadge variant="warning" label="Important" /> : null}
                 </div>
-                {a.important ? <StatusBadge variant="warning" label="Important" /> : null}
-              </div>
-            ))
+              ))
             )}
           </div>
         </Card>
@@ -150,7 +160,7 @@ export function TenantHome() {
         <Card className="h-full">
           <Text variant="h3">Notifications</Text>
           <div className="mt-3 space-y-3">
-            {notificationsList.slice(0, 5).map((n: any) => (
+            {notificationsList.slice(0, 5).map((n: NotificationItem) => (
               <div key={n.id} className={`flex flex-col gap-2 rounded border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between ${n.read ? 'opacity-60' : ''}`}>
                 <div className="min-w-0">
                   <Text variant="body" className="truncate">{n.title}</Text>

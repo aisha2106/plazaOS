@@ -1,32 +1,12 @@
 import { api } from '../api'
-
-export interface Profile {
-  id: string
-  name: string
-  email: string
-  phone?: string
-  unit?: string
-  leaseStart?: string
-  leaseEnd?: string
-  monthlyRent?: number
-}
+import type { Profile } from '../types'
 
 export const profileService = {
   async getProfile(): Promise<Profile> {
-    try {
-      return await api.get<Profile>('/tenant/profile')
-    } catch {
-      // Fallback mock
-      return {
-        id: 't-1',
-        name: 'Jane Cooper',
-        email: 'jane@example.com',
-        phone: '555-1234',
-        unit: 'A-101',
-        leaseStart: '2024-01-01',
-        leaseEnd: '2025-01-01',
-        monthlyRent: 1200,
-      }
-    }
+    return await api.get('/tenant/profile')
+  },
+
+  async updateProfile(payload: Partial<Profile>): Promise<Profile> {
+    return await api.put('/tenant/profile', payload)
   },
 }

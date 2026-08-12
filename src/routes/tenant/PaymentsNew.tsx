@@ -20,7 +20,6 @@ export function PaymentsNew() {
       await payMutation.mutateAsync(values.amount)
       navigate('/tenant/payments')
     } catch (err) {
-      // mutation exposes error; keep behavior minimal
       console.error(err)
     }
   }
@@ -39,12 +38,12 @@ export function PaymentsNew() {
             <Text variant="bodySmall" className="text-danger">Please enter an amount greater than 0.</Text>
           ) : null}
           <div className="flex justify-end">
-            <Button type="submit" disabled={payMutation.status === 'pending' || formState.isSubmitting}>
-              {payMutation.status === 'pending' ? 'Processing…' : 'Pay'}
+            <Button type="submit" disabled={payMutation.isPending || formState.isSubmitting}>
+              {payMutation.isPending ? 'Processing…' : 'Pay'}
             </Button>
           </div>
-          {payMutation.status === 'error' ? <Text variant="bodySmall" className="text-danger">Payment failed. Please try again.</Text> : null}
-          {payMutation.status === 'success' ? <Text variant="bodySmall" className="text-success">Payment successful.</Text> : null}
+          {payMutation.isError ? <Text variant="bodySmall" className="text-danger">Payment failed. Please try again.</Text> : null}
+          {payMutation.isSuccess ? <Text variant="bodySmall" className="text-success">Payment successful.</Text> : null}
         </form>
       </Card>
     </div>

@@ -1,9 +1,10 @@
 import { Button, Card, Text } from '../../components'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useMemo } from 'react'
+import type { NotificationItem } from '../../lib/types'
 
-function groupByDate(items: any[]) {
-  const groups: Record<string, any[]> = {}
+function groupByDate(items: NotificationItem[]) {
+  const groups: Record<string, NotificationItem[]> = {}
   for (const it of items) {
     const date = new Date(it.date).toDateString()
     groups[date] = groups[date] || []
@@ -21,7 +22,9 @@ export function Notifications() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Text variant="h1">Notifications</Text>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => markAll.mutate()}>Mark all read</Button>
+          <Button variant="secondary" onClick={() => markAll.mutate()} disabled={markAll.isPending || (data?.every((notification) => notification.read) ?? true)}>
+            {markAll.isPending ? 'Marking…' : 'Mark all read'}
+          </Button>
         </div>
       </div>
       <Card>
@@ -43,14 +46,14 @@ export function Notifications() {
                 <div key={date}>
                   <Text variant="caption">{date}</Text>
                   <div className="mt-2 space-y-2">
-                    {items.map((n: any) => (
+                    {items.map((n) => (
                       <div key={n.id} className={`flex flex-col gap-2 rounded border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between ${n.read ? 'opacity-60' : ''}`}>
                         <div className="min-w-0">
                           <Text variant="body" className="truncate">{n.title}</Text>
                           <Text variant="bodySmall" className="text-slate-500">{n.type}</Text>
                         </div>
                         {!n.read ? (
-                          <Button variant="secondary" onClick={() => markRead.mutate(n.id)}>Mark read</Button>
+                          <Button variant="secondary" onClick={() => markRead.mutate(n.id)} disabled={markRead.isPending}>Mark read</Button>
                         ) : null}
                       </div>
                     ))}
@@ -60,6 +63,7 @@ export function Notifications() {
             )}
           </div>
         )}
+        {markRead.isError || markAll.isError ? <Text variant="bodySmall" className="mt-3 text-danger">Unable to update notifications. Please try again.</Text> : null}
       </Card>
     </div>
   )

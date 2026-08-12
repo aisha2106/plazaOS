@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, Table, Text } from '../../components'
+import { Button, Card, StatusBadge, Table, Text } from '../../components'
 import { useMaintenance } from '../../hooks/useMaintenance'
 import { useNavigate } from 'react-router-dom'
+import type { MaintenanceRequest, MaintenanceStatus } from '../../lib/types'
+
+const statusVariantMap: Record<MaintenanceStatus, 'info' | 'warning' | 'success'> = {
+  open: 'info',
+  in_progress: 'warning',
+  closed: 'success',
+}
 
 export function Maintenance() {
   const [page, setPage] = useState(1)
@@ -9,20 +16,23 @@ export function Maintenance() {
   const navigate = useNavigate()
 
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<MaintenanceStatus | ''>('')
 
   const filtered = useMemo(() => {
-    const rows = data?.data ?? []
-    return rows.filter((r: any) => {
-      const matchesQuery = query ? r.title.toLowerCase().includes(query.toLowerCase()) || (r.description || '').toLowerCase().includes(query.toLowerCase()) : true
+    const rows: MaintenanceRequest[] = data?.data ?? []
+    return rows.filter((r) => {
+      const matchesQuery = query
+        ? r.title.toLowerCase().includes(query.toLowerCase()) || (r.description || '').toLowerCase().includes(query.toLowerCase())
+        : true
       const matchesStatus = statusFilter ? r.status === statusFilter : true
       return matchesQuery && matchesStatus
     })
   }, [data, query, statusFilter])
+  const hasNextPage = page * 10 < (data?.total ?? 0)
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
+    <div className="px-4 sm:px-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Text variant="h1">Maintenance</Text>
         <Button variant="secondary" onClick={() => navigate('/tenant/maintenance/new')}>
           New request
@@ -30,9 +40,9 @@ export function Maintenance() {
       </div>
 
       <Card>
-        <div className="mb-3 flex items-center gap-2">
-          <input placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} className="min-h-[44px] rounded-button border px-3" />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="min-h-[44px] rounded-button border px-3">
+        <div className="mb-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <input aria-label="Search maintenance requests" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} className="min-h-[44px] w-full rounded-button border px-3" />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as MaintenanceStatus)} className="min-h-[44px] w-full rounded-button border px-3 sm:w-auto">
             <option value="">All statuses</option>
             <option value="open">Open</option>
             <option value="in_progress">In progress</option>
@@ -50,14 +60,21 @@ export function Maintenance() {
             </div>
           </div>
         ) : (
-          <Table columns={[{ key: 'title', header: 'Title' }, { key: 'status', header: 'Status' }]} data={filtered} getRowKey={(r: any) => r.id} />
+          <Table<MaintenanceRequest>
+            columns={[
+              { key: 'title', header: 'Title' },
+              { key: 'status', header: 'Status', render: (row) => <StatusBadge variant={statusVariantMap[row.status]} label={row.status} /> },
+            ]}
+            data={filtered}
+            getRowKey={(r) => r.id}
+          />
         )}
-        <div className="mt-3 flex items-center justify-between">
-          <div>
-            <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))}>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
               Prev
             </Button>
-            <Button className="ml-2" onClick={() => setPage((p) => p + 1)}>
+            <Button onClick={() => setPage((p) => p + 1)} disabled={!hasNextPage}>
               Next
             </Button>
           </div>

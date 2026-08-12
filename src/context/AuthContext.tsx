@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { api, clearToken, getToken, setToken } from '../lib/api'
+import { ApiError, api, clearToken, getToken, setToken } from '../lib/api'
 
 export type Role = 'admin' | 'tenant'
 
@@ -38,6 +38,10 @@ function readStoredUser(): AuthUser | null {
   }
 }
 
+function isApiError(value: unknown): value is ApiError {
+  return value instanceof ApiError
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => getToken())
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser())
@@ -57,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check if the error is a network/connectivity issue or 404 (API not available)
       const isNetworkError = err instanceof TypeError || (err instanceof Error && /failed to fetch/i.test(err.message))
-      const isNotFound = (err as any)?.status === 404
+      const isNotFound = isApiError(err) && err.status === 404
 
       if (isDev && (isNetworkError || isNotFound)) {
         // Console log for debugging (development only)

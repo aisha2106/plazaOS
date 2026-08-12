@@ -12,8 +12,9 @@ export function Announcements() {
   const filtered = useMemo(() => {
     const rows = data?.data ?? []
     if (!query) return rows
-    return rows.filter((r: any) => r.title.toLowerCase().includes(query.toLowerCase()) || r.body.toLowerCase().includes(query.toLowerCase()))
+    return rows.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()) || r.body.toLowerCase().includes(query.toLowerCase()))
   }, [data, query])
+  const hasNextPage = page * 10 < (data?.total ?? 0)
 
   return (
     <div>
@@ -35,7 +36,7 @@ export function Announcements() {
           <Text variant="bodySmall">No announcements</Text>
         ) : (
           <div className="space-y-4">
-            {filtered.map((a: any) => (
+            {filtered.map((a) => (
               <div key={a.id} className="rounded p-3 border">
                 <div className="flex items-center justify-between">
                   <div>
@@ -56,10 +57,10 @@ export function Announcements() {
         )}
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
               Prev
             </Button>
-            <Button onClick={() => setPage((p) => p + 1)}>
+            <Button onClick={() => setPage((p) => p + 1)} disabled={!hasNextPage}>
               Next
             </Button>
           </div>

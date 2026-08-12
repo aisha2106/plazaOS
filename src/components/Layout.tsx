@@ -25,6 +25,7 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     { label: 'Maintenance', to: '/tenant/maintenance' },
     { label: 'Announcements', to: '/tenant/announcements' },
     { label: 'Notifications', to: '/tenant/notifications' },
+    { label: 'Calendar', to: '/tenant/calendar' },
   ],
 }
 

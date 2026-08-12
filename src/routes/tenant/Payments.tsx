@@ -1,28 +1,33 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Modal, Table, Text, StatusBadge } from '../../components'
+import type { TableColumn } from '../../components'
 import { usePayments } from '../../hooks/usePayments'
+import type { Payment, PaymentStatus } from '../../lib/types'
+
+const statusVariantMap: Record<PaymentStatus, 'success' | 'info' | 'danger'> = {
+  paid: 'success',
+  pending: 'info',
+  overdue: 'danger',
+}
 
 export function Payments() {
   const [page, setPage] = useState(1)
   const navigate = useNavigate()
   const { data, isLoading, isError, refetch } = usePayments(page)
 
-  const columns = [
+  const columns: TableColumn<Payment>[] = [
     { key: 'date', header: 'Date' },
     { key: 'amount', header: 'Amount' },
     {
       key: 'status',
       header: 'Status',
-      render: (row: any) => {
-        const map: any = { paid: 'success', pending: 'info', overdue: 'danger' }
-        return <StatusBadge variant={map[row.status]} label={row.status} />
-      },
+      render: (row: Payment) => <StatusBadge variant={statusVariantMap[row.status]} label={row.status} />,
     },
     {
       key: 'actions',
       header: '',
-      render: (row: any) => (
+      render: (row: Payment) => (
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => setSelected(row)}>
             View
@@ -38,17 +43,18 @@ export function Payments() {
   ]
 
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [selected, setSelected] = useState<any | null>(null)
+  const [statusFilter, setStatusFilter] = useState<PaymentStatus | ''>('')
+  const [selected, setSelected] = useState<Payment | null>(null)
 
   const filtered = useMemo(() => {
-    const rows = data?.data ?? []
-    return rows.filter((r: any) => {
+    const rows: Payment[] = data?.data ?? []
+    return rows.filter((r) => {
       const matchesQuery = query ? String(r.amount).includes(query) || r.date.includes(query) : true
       const matchesStatus = statusFilter ? r.status === statusFilter : true
       return matchesQuery && matchesStatus
     })
   }, [data, query, statusFilter])
+  const hasNextPage = page * 10 < (data?.total ?? 0)
 
   return (
     <div className="px-4 sm:px-6">
@@ -68,7 +74,7 @@ export function Payments() {
             onChange={(e) => setQuery(e.target.value)}
             className="min-h-[44px] w-full rounded-button border px-3"
           />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="min-h-[44px] w-full rounded-button border px-3 sm:w-auto">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as PaymentStatus)} className="min-h-[44px] w-full rounded-button border px-3 sm:w-auto">
             <option value="">All statuses</option>
             <option value="paid">Paid</option>
             <option value="pending">Pending</option>
@@ -86,10 +92,10 @@ export function Payments() {
             </div>
           </div>
         ) : (
-          <Table
-            columns={columns as any}
+          <Table<Payment>
+            columns={columns}
             data={filtered}
-            getRowKey={(r: any) => r.id}
+            getRowKey={(r) => r.id}
           />
         )}
 
@@ -112,10 +118,10 @@ export function Payments() {
         </Modal>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
               Prev
             </Button>
-            <Button onClick={() => setPage((p) => p + 1)}>
+            <Button onClick={() => setPage((p) => p + 1)} disabled={!hasNextPage}>
               Next
             </Button>
           </div>

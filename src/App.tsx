@@ -13,6 +13,7 @@ import { Maintenance } from './routes/tenant/Maintenance'
 import { MaintenanceNew } from './routes/tenant/MaintenanceNew'
 import { Announcements } from './routes/tenant/Announcements'
 import { Notifications } from './routes/tenant/Notifications'
+import { Calendar } from './routes/tenant/Calendar'
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
           <Route path="maintenance/new" element={<MaintenanceNew />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="calendar" element={<Calendar />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
