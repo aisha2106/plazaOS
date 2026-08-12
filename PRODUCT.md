@@ -4,7 +4,14 @@
 
 Plaza OS is a plaza management app with two user roles: **Admin** and **Tenant**. The admin manages the plaza — units, tenants, leases, rent, maintenance, announcements, and reminders. Tenants interact with their own unit, payments, and maintenance requests.
 
-There is no public registration. Tenant accounts are created by the admin when a tenant moves in. There is no owner-verification step, no manager role, and no multi-property setup — this app is scoped to a single plaza.
+Tenant accounts are created by the admin — see Account Setup below. There is no owner-verification step, no manager role, and no multi-property setup — this app is scoped to a single plaza.
+
+## Account Setup
+
+- There is no public registration.
+- The admin creates tenant accounts when a tenant moves in.
+- New tenants receive a temporary password or a password-setup link.
+- Tenants must set/change their password on first access before using the rest of the app.
 
 ## Roles
 
@@ -17,6 +24,7 @@ There is no public registration. Tenant accounts are created by the admin when a
 - Sets automatic and manual reminders
 - Manages a calendar of events (lease renewals, reminders)
 - Can manually record offline payments
+- Views in-app notifications for admin-relevant events
 
 ### Tenant
 - Views their assigned unit and current rent status
@@ -32,12 +40,12 @@ There is no public registration. Tenant accounts are created by the admin when a
 | Feature | Details |
 |---|---|
 | Unit & tenant management | Admin creates/assigns units and tenant accounts |
-| Rent & lease tracking | Lease terms, rent amounts, due dates |
+| Rent & lease tracking | Lease terms (rent amount, start date, end date, due date) stored as structured data — no lease document uploads |
 | Payments | Tenant pays via gateway (`/tenant/payments/new`); admin can log offline payments (`/admin/payments/new`) |
 | Maintenance requests | Tenant submits with image upload; admin tracks and updates status |
 | Announcements | Admin-posted, visible to all or selected tenants |
-| Reminders | Automatic via node-cron on the backend; admin can also send manual reminders to one tenant, a group, or everyone |
-| Notifications | In-app and email, for payments, rent reminders, maintenance updates, announcements |
+| Reminders | Automatic processing via `node-cron`, running in-process on the backend's persistent Node server. Admin can also send manual reminders to one tenant, a group, or everyone |
+| Notifications | In-app for both Admin and Tenant; major events (payments, rent reminders, maintenance updates, important announcements, scheduled reminders) may also trigger email notifications |
 | Receipts | Downloadable, tied to individual payments |
 | Calendar | Admin manages events; tenants have a read view of relevant dates |
 
@@ -49,18 +57,18 @@ Only two upload types exist in this app:
 - Maintenance request images
 - Downloadable payment receipts (generated, not uploaded)
 
-There is no general document upload feature — it was deliberately removed from an earlier, broader version of this project.
+There is no general document upload feature — it was deliberately removed from an earlier, broader version of this project. Lease details (rent amount, start date, end date, due date) are structured database fields, not uploaded documents — lease document uploads are out of scope.
 
 ## Architecture
 
-React frontend (this repo)
+React (Vite) frontend (this repo)
 ↓ REST calls
 Next.js backend (API routes only — no pages)
 ↓
 MongoDB
 
 
-The frontend does not render any pages itself via Next.js — Next.js here is a backend, not a full-stack framework in this project. All UI lives in this React app.
+Next.js is used only for backend API routes in this project — it renders no pages of its own, and must not gain any. React/Vite remains the one and only place UI is rendered; the frontend is never moved into Next.js. The backend runs as a persistent Node server (not a serverless/edge deployment), which is what allows `node-cron` to run reminder processing in-process. MongoDB is the database for all persisted data.
 
 ## Route Map
 
@@ -70,8 +78,10 @@ The frontend does not render any pages itself via Next.js — Next.js here is a 
 **Admin**
 - `/admin/dashboard`
 - `/admin/units`
+- `/admin/units/new`
 - `/admin/units/:unitId`
 - `/admin/tenants`
+- `/admin/tenants/new`
 - `/admin/tenants/:tenantId`
 - `/admin/payments`
 - `/admin/payments/new`
@@ -80,9 +90,11 @@ The frontend does not render any pages itself via Next.js — Next.js here is a 
 - `/admin/maintenance/:requestId`
 - `/admin/announcements`
 - `/admin/calendar`
+- `/admin/calendar/new`
 - `/admin/reminders`
 - `/admin/reminders/new`
 - `/admin/reminders/:reminderId`
+- `/admin/notifications`
 
 **Tenant**
 - `/tenant/dashboard`
