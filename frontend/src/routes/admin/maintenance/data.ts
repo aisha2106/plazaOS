@@ -1,3 +1,4 @@
+import { api } from '../../../lib/api'
 import { mockMaintenanceRequests } from '../data/mockData'
 import type { MaintenancePriority, MaintenanceRequest, MaintenanceStatus } from '../data/types'
 
@@ -36,31 +37,21 @@ function compareMaintenanceRequests(a: MaintenanceRequest, b: MaintenanceRequest
   }
 }
 
-/**
- * The only function that reads/searches/filters/sorts/paginates the
- * maintenance requests collection — every other file gets requests through
- * this. The signature mirrors a future
- * `GET /maintenance?search=&status=&priority=&sortBy=&sortDir=&page=&pageSize=`:
- * when the real backend exists, only this function's body changes (to an
- * api.get() call) — callers and the return shape stay the same.
- */
-export function getMaintenanceRequests(params: GetMaintenanceRequestsParams = {}): GetMaintenanceRequestsResult {
+// Mirrors GET /maintenance's own in-memory filter/sort/paginate logic — used
+// only as a DEV-mode fallback (see getMaintenanceRequests()) when the
+// backend isn't reachable.
+function mockGetMaintenanceRequests(params: GetMaintenanceRequestsParams): GetMaintenanceRequestsResult {
   const { search = '', status = 'all', priority = 'all', sortBy = 'createdAt', sortDir = 'asc', page = 1, pageSize = 20 } = params
 
   let filtered = mockMaintenanceRequests
-
   const query = search.trim().toLowerCase()
   if (query) {
     filtered = filtered.filter(
       (request) => request.title.toLowerCase().includes(query) || request.tenantName.toLowerCase().includes(query),
     )
   }
-  if (status !== 'all') {
-    filtered = filtered.filter((request) => request.status === status)
-  }
-  if (priority !== 'all') {
-    filtered = filtered.filter((request) => request.priority === priority)
-  }
+  if (status !== 'all') filtered = filtered.filter((request) => request.status === status)
+  if (priority !== 'all') filtered = filtered.filter((request) => request.priority === priority)
 
   const sorted = [...filtered].sort((a, b) => {
     const comparison = compareMaintenanceRequests(a, b, sortBy)
@@ -69,13 +60,48 @@ export function getMaintenanceRequests(params: GetMaintenanceRequestsParams = {}
 
   const total = sorted.length
   const start = (page - 1) * pageSize
-
   return { data: sorted.slice(start, start + pageSize), total, page, pageSize }
 }
 
-/** TODO: becomes `GET /maintenance/:requestId` once the backend is reachable — signature stays the same. */
-export function getMaintenanceRequest(requestId: string): MaintenanceRequest | undefined {
-  return mockMaintenanceRequests.find((request) => request.id === requestId)
+/**
+ * The only function that reads/searches/filters/sorts/paginates the
+ * maintenance requests collection — every other file gets requests through
+ * this. Calls `GET /maintenance?search=&status=&priority=&sortBy=&sortDir=&page=&pageSize=`;
+ * falls back to the mock dataset in dev if the backend isn't reachable.
+ */
+export async function getMaintenanceRequests(params: GetMaintenanceRequestsParams = {}): Promise<GetMaintenanceRequestsResult> {
+  const { search = '', status = 'all', priority = 'all', sortBy = 'createdAt', sortDir = 'asc', page = 1, pageSize = 20 } = params
+  const query = new URLSearchParams()
+  if (search) query.set('search', search)
+  if (status !== 'all') query.set('status', status)
+  if (priority !== 'all') query.set('priority', priority)
+  query.set('sortBy', sortBy)
+  query.set('sortDir', sortDir)
+  query.set('page', String(page))
+  query.set('pageSize', String(pageSize))
+
+  try {
+    return await api.get<GetMaintenanceRequestsResult>(`/maintenance?${query.toString()}`)
+  } catch (err) {
+    if (!import.meta.env.DEV) throw err
+    return mockGetMaintenanceRequests(params)
+  }
+}
+
+/** All requests for a single tenant (used by TenantDetail's request list). */
+export async function getMaintenanceRequestsByTenant(tenantId: string): Promise<MaintenanceRequest[]> {
+  const { data } = await getMaintenanceRequests({ pageSize: 200 })
+  return data.filter((request) => request.tenantId === tenantId)
+}
+
+/** `GET /maintenance/:requestId`. */
+export async function getMaintenanceRequest(requestId: string): Promise<MaintenanceRequest | undefined> {
+  try {
+    return await api.get<MaintenanceRequest>(`/maintenance/${requestId}`)
+  } catch (err) {
+    if (!import.meta.env.DEV) throw err
+    return mockMaintenanceRequests.find((request) => request.id === requestId)
+  }
 }
 
 export interface UpdateMaintenanceRequestInput {
@@ -85,10 +111,19 @@ export interface UpdateMaintenanceRequestInput {
   resolvedAt?: string | null
 }
 
-/** TODO: becomes `PATCH /maintenance/:requestId` once the backend is reachable — signature stays the same. */
-export function updateMaintenanceRequest(requestId: string, updates: UpdateMaintenanceRequestInput): MaintenanceRequest | undefined {
-  const request = mockMaintenanceRequests.find((existing) => existing.id === requestId)
-  if (!request) return undefined
-  Object.assign(request, updates)
-  return request
+/** `PATCH /maintenance/:requestId`. */
+export async function updateMaintenanceRequest(
+  requestId: string,
+  updates: UpdateMaintenanceRequestInput,
+): Promise<MaintenanceRequest | undefined> {
+  try {
+    return await api.patch<MaintenanceRequest>(`/maintenance/${requestId}`, updates)
+  } catch (err) {
+    if (!import.meta.env.DEV) throw err
+    const request = mockMaintenanceRequests.find((existing) => existing.id === requestId)
+    if (!request) return undefined
+    Object.assign(request, updates)
+    return request
+  }
 }
+

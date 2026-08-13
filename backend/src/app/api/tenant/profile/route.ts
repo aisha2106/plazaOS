@@ -2,21 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { dbConnect } from '@/lib/db'
 import { User } from '@/models/User'
+import { Lease } from '@/models/Lease'
 import { ApiError } from '@/lib/api-error'
 import { withErrorHandling, requireRole, OPTIONS as corsOptions } from '@/lib/route-handler'
 
 export { corsOptions as OPTIONS }
 
-function toProfile(user: any) {
+function toProfile(user: any, lease: any) {
   return {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
     phone: user.phone,
     unit: user.unitNumber,
-    leaseStart: user.leaseStart,
-    leaseEnd: user.leaseEnd,
-    monthlyRent: user.monthlyRent,
+    leaseStart: lease?.startDate,
+    leaseEnd: lease?.endDate,
+    monthlyRent: lease?.rentAmount,
   }
 }
 
@@ -25,7 +26,9 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   await dbConnect()
   const user = await User.findById(auth.sub)
   if (!user) throw new ApiError('Not found', 404)
-  return NextResponse.json(toProfile(user))
+  // Most recent active lease for this tenant, falling back to the latest ended one.
+  const lease = await Lease.findOne({ tenantId: user._id }).sort({ status: 1, startDate: -1 })
+  return NextResponse.json(toProfile(user, lease))
 })
 
 const updateProfileSchema = z
@@ -49,5 +52,6 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
   if (parsed.data.phone !== undefined) user.phone = parsed.data.phone
   await user.save()
 
-  return NextResponse.json(toProfile(user))
+  const lease = await Lease.findOne({ tenantId: user._id }).sort({ status: 1, startDate: -1 })
+  return NextResponse.json(toProfile(user, lease))
 })

@@ -1,12 +1,18 @@
-// Seeds MongoDB with data shaped like src/routes/admin/data/mockData.ts in the
-// frontend repo, so local dev against this real backend looks identical to
-// today's mock-data experience. Run with: npm run seed
+// Seeds MongoDB with FAKE development/test data shaped like
+// src/routes/admin/data/mockData.ts in the frontend repo, so local dev against
+// this real backend looks identical to today's mock-data experience.
+// Dev/test-only: refuses to run when NODE_ENV=production, and never creates
+// the real admin account (run `npm run bootstrap:admin` for that, separately,
+// per BACKEND_BUILD_PLAN.md §8/§9) so fake data never mixes with it.
+// Run with: npm run seed
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import { dbConnect } from '../src/lib/db'
-import { hashPassword } from '../src/lib/password'
+import { hashPassword, generateTempPassword } from '../src/lib/password'
 import { User } from '../src/models/User'
 import { Unit } from '../src/models/Unit'
+import { Lease } from '../src/models/Lease'
+import { RentCharge } from '../src/models/RentCharge'
 import { Payment } from '../src/models/Payment'
 import { MaintenanceRequest } from '../src/models/MaintenanceRequest'
 import { Announcement } from '../src/models/Announcement'
@@ -14,13 +20,26 @@ import { Reminder } from '../src/models/Reminder'
 import { CalendarEvent } from '../src/models/CalendarEvent'
 import { Notification } from '../src/models/Notification'
 
+if (process.env.NODE_ENV === 'production') {
+  console.error('Refusing to run the development seed script with NODE_ENV=production.')
+  process.exit(1)
+}
+
 async function seed() {
   await dbConnect()
 
-  console.log('Clearing existing collections...')
+  const admin = await User.findOne({ role: 'admin' })
+  if (!admin) {
+    console.error('No admin account found. Run `npm run bootstrap:admin` first (see BACKEND_BUILD_PLAN.md §9).')
+    process.exit(1)
+  }
+
+  console.log('Clearing existing fake/dev data (tenant users + mock collections)...')
   await Promise.all([
-    User.deleteMany({}),
+    User.deleteMany({ role: 'tenant' }),
     Unit.deleteMany({}),
+    Lease.deleteMany({}),
+    RentCharge.deleteMany({}),
     Payment.deleteMany({}),
     MaintenanceRequest.deleteMany({}),
     Announcement.deleteMany({}),
@@ -29,18 +48,8 @@ async function seed() {
     Notification.deleteMany({}),
   ])
 
-  const adminPasswordHash = await hashPassword('admin123')
-  const admin = await User.create({
-    name: 'Dev Admin',
-    email: 'admin@plaza.test',
-    passwordHash: adminPasswordHash,
-    role: 'admin',
-    accountStatus: 'active',
-    mustChangePassword: false,
-  })
-  console.log('Created admin: admin@plaza.test / admin123')
-
-  const tenantPasswordHash = await hashPassword('tenant123')
+  const tenantPassword = process.env.SEED_TENANT_PASSWORD || generateTempPassword()
+  const tenantPasswordHash = await hashPassword(tenantPassword)
 
   const unitDefs = [
     { unitNumber: 'A-101', floor: '1', sizeSqft: 420, monthlyRent: 1200, status: 'occupied' as const },
@@ -75,10 +84,6 @@ async function seed() {
       phone: def.phone,
       unitId: unit?._id,
       unitNumber: def.unitNumber,
-      leaseStart: def.leaseStart,
-      leaseEnd: def.leaseEnd,
-      monthlyRent: def.monthlyRent,
-      rentStatus: def.rentStatus,
       status: def.status,
       accountStatus: 'active',
       mustChangePassword: false,
@@ -90,7 +95,35 @@ async function seed() {
     }
     tenants.push(tenant)
   }
-  console.log(`Created ${tenants.length} tenants (password: tenant123 for all)`)
+  console.log(`Created ${tenants.length} tenants (password: ${tenantPassword})`)
+
+  // Each tenant gets a Lease (the ongoing agreement) and a single open
+  // RentCharge for the current period, derived from the old `rentStatus` value.
+  const rentChargeByEmail = new Map<string, InstanceType<typeof RentCharge>>()
+  for (let i = 0; i < tenantDefs.length; i++) {
+    const def = tenantDefs[i]
+    const tenant = tenants[i]
+    const lease = await Lease.create({
+      tenantId: tenant._id,
+      unitId: tenant.unitId,
+      startDate: def.leaseStart,
+      endDate: def.leaseEnd,
+      rentAmount: def.monthlyRent,
+      rentDueDay: 1,
+      status: 'active',
+    })
+    const rentCharge = await RentCharge.create({
+      tenantId: tenant._id,
+      unitId: tenant.unitId,
+      leaseId: lease._id,
+      period: '2026-07',
+      amount: def.monthlyRent,
+      dueDate: '2026-07-01',
+      status: def.rentStatus,
+    })
+    rentChargeByEmail.set(def.email, rentCharge)
+  }
+  console.log(`Created ${tenantDefs.length} leases and rent charges`)
 
   const tenantByEmail = new Map(tenants.map((tenant) => [tenant.email, tenant]))
   const jane = tenantByEmail.get('jane.cooper@example.com')!
@@ -101,11 +134,11 @@ async function seed() {
   const guy = tenantByEmail.get('guy.hawkins@example.com')!
 
   await Payment.insertMany([
-    { tenantId: jane._id, tenantName: jane.name, unitId: unitByNumber.get('A-101')?._id, unitNumber: 'A-101', amount: 1200, method: 'gateway', status: 'paid', date: '2026-07-01' },
-    { tenantId: devon._id, tenantName: devon.name, unitId: unitByNumber.get('A-102')?._id, unitNumber: 'A-102', amount: 1100, method: 'gateway', status: 'pending', date: '2026-07-28' },
+    { tenantId: jane._id, tenantName: jane.name, unitId: unitByNumber.get('A-101')?._id, unitNumber: 'A-101', rentChargeId: rentChargeByEmail.get(jane.email)?._id, amount: 1200, method: 'gateway', status: 'paid', date: '2026-07-01' },
+    { tenantId: devon._id, tenantName: devon.name, unitId: unitByNumber.get('A-102')?._id, unitNumber: 'A-102', rentChargeId: rentChargeByEmail.get(devon.email)?._id, amount: 1100, method: 'gateway', status: 'pending', date: '2026-07-28' },
     { tenantId: wade._id, tenantName: wade.name, unitId: unitByNumber.get('B-201')?._id, unitNumber: 'B-201', amount: 1600, method: 'bank_transfer', status: 'failed', date: '2026-07-15', note: 'Bank declined the transfer, tenant notified.', recordedBy: admin._id },
-    { tenantId: esther._id, tenantName: esther.name, unitId: unitByNumber.get('B-204')?._id, unitNumber: 'B-204', amount: 1600, method: 'gateway', status: 'paid', date: '2026-07-02' },
-    { tenantId: cameron._id, tenantName: cameron.name, unitId: unitByNumber.get('C-301')?._id, unitNumber: 'C-301', amount: 2100, method: 'cash', status: 'paid', date: '2026-07-03', note: 'Paid in person at the office.', recordedBy: admin._id },
+    { tenantId: esther._id, tenantName: esther.name, unitId: unitByNumber.get('B-204')?._id, unitNumber: 'B-204', rentChargeId: rentChargeByEmail.get(esther.email)?._id, amount: 1600, method: 'gateway', status: 'paid', date: '2026-07-02' },
+    { tenantId: cameron._id, tenantName: cameron.name, unitId: unitByNumber.get('C-301')?._id, unitNumber: 'C-301', rentChargeId: rentChargeByEmail.get(cameron.email)?._id, amount: 2100, method: 'cash', status: 'paid', date: '2026-07-03', note: 'Paid in person at the office.', recordedBy: admin._id },
     { tenantId: guy._id, tenantName: guy.name, unitId: unitByNumber.get('C-310')?._id, unitNumber: 'C-310', amount: 2150, method: 'check', status: 'pending', date: '2026-07-30', recordedBy: admin._id },
     { tenantId: jane._id, tenantName: jane.name, unitId: unitByNumber.get('A-101')?._id, unitNumber: 'A-101', amount: 1200, method: 'gateway', status: 'paid', date: '2026-06-01' },
     { tenantId: wade._id, tenantName: wade.name, unitId: unitByNumber.get('B-201')?._id, unitNumber: 'B-201', amount: 1600, method: 'gateway', status: 'paid', date: '2026-06-01' },
@@ -113,12 +146,12 @@ async function seed() {
   console.log('Created payments')
 
   await MaintenanceRequest.insertMany([
-    { tenantId: jane._id, tenantName: jane.name, unitId: unitByNumber.get('A-101')?._id, unitNumber: 'A-101', title: 'Leaking kitchen faucet', description: 'The faucet has been dripping steadily for two days.', status: 'open', priority: 'medium', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: '' },
-    { tenantId: wade._id, tenantName: wade.name, unitId: unitByNumber.get('B-201')?._id, unitNumber: 'B-201', title: 'AC not cooling', description: 'Unit blows warm air, checked filter already.', status: 'in_progress', priority: 'high', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Technician scheduled for Aug 5.' },
-    { tenantId: esther._id, tenantName: esther.name, unitId: unitByNumber.get('B-204')?._id, unitNumber: 'B-204', title: 'Broken window latch', description: 'Latch on the west-facing window won\u2019t catch.', status: 'resolved', priority: 'low', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Latch replaced.', resolvedAt: '2026-07-12' },
-    { tenantId: cameron._id, tenantName: cameron.name, unitId: unitByNumber.get('C-301')?._id, unitNumber: 'C-301', title: 'Flickering hallway light', description: 'Light outside the unit flickers intermittently.', status: 'open', priority: 'low', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: '' },
-    { tenantId: guy._id, tenantName: guy.name, unitId: unitByNumber.get('C-310')?._id, unitNumber: 'C-310', title: 'Clogged drain', description: 'Bathroom sink drains very slowly.', status: 'in_progress', priority: 'medium', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Plumber snaked the drain, monitoring.' },
-    { tenantId: devon._id, tenantName: devon.name, unitId: unitByNumber.get('A-102')?._id, unitNumber: 'A-102', title: 'Door lock sticking', description: 'Front door lock is hard to turn, may need lubrication or replacement.', status: 'resolved', priority: 'medium', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Lock lubricated and tested.', resolvedAt: '2026-07-06' },
+    { tenantId: jane._id, tenantName: jane.name, unitId: unitByNumber.get('A-101')?._id, unitNumber: 'A-101', title: 'Leaking kitchen faucet', description: 'The faucet has been dripping steadily for two days.', status: 'open', priority: 'medium', images: [{ url: 'https://placehold.co/640x480?text=Maintenance+Photo', publicId: 'seed-placeholder-1' }], notes: '' },
+    { tenantId: wade._id, tenantName: wade.name, unitId: unitByNumber.get('B-201')?._id, unitNumber: 'B-201', title: 'AC not cooling', description: 'Unit blows warm air, checked filter already.', status: 'in_progress', priority: 'high', images: [{ url: 'https://placehold.co/640x480?text=Maintenance+Photo', publicId: 'seed-placeholder-2' }], notes: 'Technician scheduled for Aug 5.' },
+    { tenantId: esther._id, tenantName: esther.name, unitId: unitByNumber.get('B-204')?._id, unitNumber: 'B-204', title: 'Broken window latch', description: 'Latch on the west-facing window won\u2019t catch.', status: 'resolved', priority: 'low', images: [{ url: 'https://placehold.co/640x480?text=Maintenance+Photo', publicId: 'seed-placeholder-3' }], notes: 'Latch replaced.', resolvedAt: '2026-07-12' },
+    { tenantId: cameron._id, tenantName: cameron.name, unitId: unitByNumber.get('C-301')?._id, unitNumber: 'C-301', title: 'Flickering hallway light', description: 'Light outside the unit flickers intermittently.', status: 'open', priority: 'low', images: [{ url: 'https://placehold.co/640x480?text=Maintenance+Photo', publicId: 'seed-placeholder-4' }], notes: '' },
+    { tenantId: guy._id, tenantName: guy.name, unitId: unitByNumber.get('C-310')?._id, unitNumber: 'C-310', title: 'Clogged drain', description: 'Bathroom sink drains very slowly.', status: 'in_progress', priority: 'medium', images: [{ url: 'https://placehold.co/640x480?text=Maintenance+Photo', publicId: 'seed-placeholder-5' }], notes: 'Plumber snaked the drain, monitoring.' },
+    { tenantId: devon._id, tenantName: devon.name, unitId: unitByNumber.get('A-102')?._id, unitNumber: 'A-102', title: 'Door lock sticking', description: 'Front door lock is hard to turn, may need lubrication or replacement.', status: 'resolved', priority: 'medium', images: [{ url: 'https://placehold.co/640x480?text=Maintenance+Photo', publicId: 'seed-placeholder-6' }], notes: 'Lock lubricated and tested.', resolvedAt: '2026-07-06' },
   ])
   console.log('Created maintenance requests')
 
@@ -138,15 +171,10 @@ async function seed() {
   ])
   console.log('Created reminders')
 
-  await CalendarEvent.insertMany([
-    { title: 'Wade Warren lease renewal', type: 'lease_renewal', date: '2026-08-31', tenantId: wade._id, relatedLabel: 'B-201' },
-    { title: 'Guy Hawkins lease renewal', type: 'lease_renewal', date: '2026-08-01', tenantId: guy._id, relatedLabel: 'C-310' },
-    { title: 'Rent due reminder sent', type: 'reminder', date: '2026-07-29', relatedLabel: 'All tenants' },
-    { title: 'Elevator outage reminder', type: 'reminder', date: '2026-08-02', tenantId: wade._id, relatedLabel: 'B block' },
-    { title: 'Rent due', type: 'rent_due', date: '2026-08-01', relatedLabel: 'All tenants' },
-    { title: 'Jane Cooper lease renewal', type: 'lease_renewal', date: '2026-01-31', tenantId: jane._id, relatedLabel: 'A-101' },
-  ])
-  console.log('Created calendar events')
+  // No standalone CalendarEvent docs seeded: rent-due/lease-renewal/reminder
+  // dates are derived from RentCharge/Lease/Reminder at read time by
+  // GET /tenant/calendar (see BACKEND_BUILD_PLAN.md §1) rather than duplicated
+  // here — CalendarEvent is reserved for genuinely standalone events only.
 
   await Notification.insertMany([
     { audience: 'tenant', recipientId: jane._id, type: 'payment', title: 'Payment received', body: 'Your payment was processed.', date: '2026-07-01', read: false },
@@ -158,8 +186,8 @@ async function seed() {
   console.log('Created notifications')
 
   console.log('\nSeed complete. Sample logins:')
-  console.log('  admin@plaza.test / admin123')
-  console.log('  jane.cooper@example.com / tenant123')
+  console.log(`  ${admin.email} (bootstrapped separately via npm run bootstrap:admin)`)
+  console.log(`  jane.cooper@example.com / ${tenantPassword}`)
 
   await mongoose.disconnect()
 }

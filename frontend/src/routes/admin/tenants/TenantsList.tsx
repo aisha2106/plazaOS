@@ -3,8 +3,9 @@ import { Button, Input, StatusBadge, Table, Text } from '../../../components'
 import type { TableColumn } from '../../../components'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
+import { useAsyncData } from '../components/useAsyncData'
 import type { AccountStatus, RentStatus, Tenant } from '../data/types'
-import { getTenants, type SortDirection, type TenantSortField } from './data'
+import { getTenants, type GetTenantsResult, type SortDirection, type TenantSortField } from './data'
 
 const PAGE_SIZE = 20
 
@@ -81,7 +82,7 @@ const columns: TableColumn<Tenant>[] = [
   },
 ]
 
-// TODO: fetch tenants from GET /tenants once the backend is reachable — see getTenants() in ./data.ts.
+// Fetches tenants from GET /tenants (see getTenants() in ./data.ts).
 export function TenantsList() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -93,7 +94,12 @@ export function TenantsList() {
   const sortDir = (searchParams.get('sortDir') as SortDirection | null) ?? 'asc'
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1)
 
-  const { data, total, pageSize } = getTenants({ search, rentStatus, accountStatus, sortBy, sortDir, page, pageSize: PAGE_SIZE })
+  const { data: result } = useAsyncData<GetTenantsResult>(
+    () => getTenants({ search, rentStatus, accountStatus, sortBy, sortDir, page, pageSize: PAGE_SIZE }),
+    [search, rentStatus, accountStatus, sortBy, sortDir, page],
+    { data: [], total: 0, page, pageSize: PAGE_SIZE },
+  )
+  const { data, total, pageSize } = result
 
   // Any filter/sort change goes back to page 1; page navigation is handled separately below.
   function updateParams(patch: Record<string, string | null>) {

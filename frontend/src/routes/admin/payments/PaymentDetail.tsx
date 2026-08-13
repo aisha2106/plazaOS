@@ -1,10 +1,11 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Card, StatusBadge, Text } from '../../../components'
 import { BackLink } from '../components/BackLink'
 import { DetailField } from '../components/DetailField'
 import { PageHeader } from '../components/PageHeader'
-import { getPaymentById } from '../data/mockData'
-import type { PaymentMethod, PaymentStatus } from '../data/types'
+import type { Payment, PaymentMethod, PaymentStatus } from '../data/types'
+import { getPayment } from './data'
 
 const statusLabel: Record<PaymentStatus, string> = {
   paid: 'Paid',
@@ -25,10 +26,36 @@ const methodLabel: Record<PaymentMethod, string> = {
   gateway: 'Gateway',
 }
 
-// TODO: fetch this payment from GET /payments/:paymentId once the backend is reachable.
+// Fetches this payment from GET /payments/:paymentId.
 export function PaymentDetail() {
   const { paymentId } = useParams<{ paymentId: string }>()
-  const payment = paymentId ? getPaymentById(paymentId) : undefined
+  const [payment, setPayment] = useState<Payment | undefined>(undefined)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!paymentId) return
+    let cancelled = false
+    setLoading(true)
+    getPayment(paymentId)
+      .then((found) => {
+        if (!cancelled) setPayment(found)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [paymentId])
+
+  if (loading) {
+    return (
+      <div>
+        <BackLink to="/admin/payments" label="Back to payments" />
+        <Text variant="body">Loading…</Text>
+      </div>
+    )
+  }
 
   if (!payment) {
     return (

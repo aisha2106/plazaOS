@@ -23,6 +23,20 @@ export class ApiError extends Error {
   }
 }
 
+// Backend errors are `{ message: string }` JSON (see BACKEND_BUILD_PLAN.md §10.2);
+// fall back to plain text for any response that isn't JSON-shaped.
+async function extractErrorMessage(response: Response): Promise<string> {
+  const text = await response.text().catch(() => '')
+  if (!text) return response.statusText
+  try {
+    const body = JSON.parse(text) as { message?: unknown }
+    if (typeof body.message === 'string' && body.message) return body.message
+  } catch {
+    // Not JSON — use the raw text below.
+  }
+  return text || response.statusText
+}
+
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
 }
@@ -55,8 +69,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText)
-    throw new ApiError(message || response.statusText, response.status)
+    const message = await extractErrorMessage(response)
+    throw new ApiError(message, response.status)
   }
 
   if (response.status === 204) {

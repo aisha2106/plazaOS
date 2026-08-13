@@ -3,8 +3,9 @@ import { Button, Input, StatusBadge, Table, Text } from '../../../components'
 import type { TableColumn } from '../../../components'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
+import { useAsyncData } from '../components/useAsyncData'
 import type { Reminder, ReminderStatus, ReminderType } from '../data/types'
-import { getReminders, type ReminderSortField, type SortDirection } from './data'
+import { getReminders, type GetRemindersResult, type ReminderSortField, type SortDirection } from './data'
 
 const PAGE_SIZE = 20
 
@@ -68,7 +69,7 @@ const columns: TableColumn<Reminder>[] = [
   },
 ]
 
-// TODO: fetch reminders from GET /reminders once the backend is reachable — see getReminders() in ./data.ts.
+// Fetches reminders from GET /reminders (see getReminders() in ./data.ts).
 export function RemindersList() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -80,7 +81,12 @@ export function RemindersList() {
   const sortDir = (searchParams.get('sortDir') as SortDirection | null) ?? 'asc'
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1)
 
-  const { data, total, pageSize } = getReminders({ search, status, type, sortBy, sortDir, page, pageSize: PAGE_SIZE })
+  const { data: result } = useAsyncData<GetRemindersResult>(
+    () => getReminders({ search, status, type, sortBy, sortDir, page, pageSize: PAGE_SIZE }),
+    [search, status, type, sortBy, sortDir, page],
+    { data: [], total: 0, page, pageSize: PAGE_SIZE },
+  )
+  const { data, total, pageSize } = result
 
   // Any filter/sort change goes back to page 1; page navigation is handled separately below.
   function updateParams(patch: Record<string, string | null>) {

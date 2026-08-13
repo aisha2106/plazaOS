@@ -1,36 +1,65 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, StatusBadge, Text } from '../../components'
 import { PageHeader } from './components/PageHeader'
-import { mockCalendarEvents, mockMaintenanceRequests, mockPayments, mockTenants, mockUnits } from './data/mockData'
+import { getCalendarEvents } from './calendar/data'
+import { getMaintenanceRequests } from './maintenance/data'
+import { getPayments } from './payments/data'
+import { getTenants } from './tenants/data'
+import { getUnits } from './units/data'
+import type { CalendarEvent, Payment, PaymentStatus, Tenant, Unit } from './data/types'
 
-// TODO: replace these derived stats with a real summary endpoint once the
-// backend is reachable.
-const totalUnits = mockUnits.length
-const occupiedUnits = mockUnits.filter((unit) => unit.status === 'occupied').length
-const vacantUnits = mockUnits.filter((unit) => unit.status === 'vacant').length
-const overdueTenants = mockTenants.filter((tenant) => tenant.rentStatus === 'overdue').length
-const openMaintenance = mockMaintenanceRequests.filter((request) => request.status === 'open').length
-
-const recentPayments = [...mockPayments]
-  .sort((a, b) => b.date.localeCompare(a.date))
-  .slice(0, 4)
-
-const upcomingEvents = [...mockCalendarEvents].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4)
-
-const paymentStatusLabel: Record<(typeof mockPayments)[number]['status'], string> = {
+const paymentStatusLabel: Record<PaymentStatus, string> = {
   paid: 'Paid',
   pending: 'Pending',
   failed: 'Failed',
 }
 
-const paymentStatusVariant: Record<(typeof mockPayments)[number]['status'], 'success' | 'warning' | 'danger'> = {
+const paymentStatusVariant: Record<PaymentStatus, 'success' | 'warning' | 'danger'> = {
   paid: 'success',
   pending: 'warning',
   failed: 'danger',
 }
 
+// Summary stats are computed client-side from the existing list endpoints
+// (each fetched with a large pageSize, per §4's small-dataset allowance)
+// rather than a dedicated summary endpoint.
 export function AdminDashboard() {
+  const [units, setUnits] = useState<Unit[]>([])
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [openMaintenanceCount, setOpenMaintenanceCount] = useState(0)
+  const [recentPayments, setRecentPayments] = useState<Payment[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      getUnits({ pageSize: 1000 }),
+      getTenants({ pageSize: 1000 }),
+      getMaintenanceRequests({ status: 'open', pageSize: 1 }),
+      getPayments({ sortBy: 'date', sortDir: 'desc', pageSize: 4 }),
+      getCalendarEvents({ sortDir: 'asc', pageSize: 4 }),
+    ]).then(([unitsResult, tenantsResult, maintenanceResult, paymentsResult, calendarResult]) => {
+      if (cancelled) return
+      setUnits(unitsResult.data)
+      setTenants(tenantsResult.data)
+      setOpenMaintenanceCount(maintenanceResult.total)
+      setRecentPayments(paymentsResult.data)
+      setUpcomingEvents(calendarResult.data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const totalUnits = units.length
+  const occupiedUnits = units.filter((unit) => unit.status === 'occupied').length
+  const vacantUnits = units.filter((unit) => unit.status === 'vacant').length
+  const overdueTenants = tenants.filter((tenant) => tenant.rentStatus === 'overdue').length
+  const activeTenants = tenants.filter((tenant) => tenant.status === 'active').length
+
   return (
+
     <div>
       <PageHeader title="Dashboard" description="Plaza overview at a glance." />
 
@@ -51,10 +80,10 @@ export function AdminDashboard() {
             Active tenants
           </Text>
           <Text variant="display" className="mt-1 text-slate-900">
-            {mockTenants.filter((tenant) => tenant.status === 'active').length}
+            {activeTenants}
           </Text>
           <Text variant="bodySmall" className="mt-1 text-slate-500">
-            of {mockTenants.length} total
+            of {tenants.length} total
           </Text>
         </Card>
         <Card>
@@ -73,10 +102,10 @@ export function AdminDashboard() {
             Open maintenance
           </Text>
           <Text variant="display" className="mt-1 text-slate-900">
-            {openMaintenance}
+            {openMaintenanceCount}
           </Text>
           <Text variant="bodySmall" className="mt-1 text-slate-500">
-            request{openMaintenance === 1 ? '' : 's'} awaiting action
+            request{openMaintenanceCount === 1 ? '' : 's'} awaiting action
           </Text>
         </Card>
       </div>

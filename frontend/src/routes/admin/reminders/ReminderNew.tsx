@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Input } from '../../../components'
 import { BackLink } from '../components/BackLink'
@@ -6,8 +6,9 @@ import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
 import { TenantMultiSelect } from '../components/TenantMultiSelect'
 import { Textarea } from '../components/Textarea'
-import { mockTenants } from '../data/mockData'
-import type { ReminderTarget } from '../data/types'
+import { getTenants } from '../tenants/data'
+import type { ReminderTarget, Tenant } from '../data/types'
+import { addReminder } from './data'
 
 const targetOptions: { value: ReminderTarget; label: string }[] = [
   { value: 'tenant', label: 'One tenant' },
@@ -15,27 +16,48 @@ const targetOptions: { value: ReminderTarget; label: string }[] = [
   { value: 'everyone', label: 'Everyone' },
 ]
 
-// TODO: submit to POST /reminders once the backend is reachable — this only
-// simulates success and returns to the reminders list.
+// Submits to POST /reminders — see addReminder() in ./data.ts.
 export function ReminderNew() {
   const navigate = useNavigate()
+  const [tenants, setTenants] = useState<Tenant[]>([])
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [target, setTarget] = useState<ReminderTarget>('everyone')
-  const [tenantId, setTenantId] = useState(mockTenants[0]?.id ?? '')
+  const [tenantId, setTenantId] = useState('')
   const [groupTenantIds, setGroupTenantIds] = useState<string[]>([])
   const [scheduledFor, setScheduledFor] = useState(() => new Date().toISOString().slice(0, 10))
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  useEffect(() => {
+    let cancelled = false
+    getTenants({ pageSize: 1000 }).then((result) => {
+      if (cancelled) return
+      setTenants(result.data)
+      if (result.data[0]) setTenantId(result.data[0].id)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const canSubmit = target !== 'group' || groupTenantIds.length > 0
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
-    // TODO: await api.post('/reminders', { title, message, target, tenantId, groupTenantIds, scheduledFor })
-    window.setTimeout(() => {
+    try {
+      await addReminder({
+        title,
+        message,
+        scheduledFor,
+        target,
+        tenantId: target === 'tenant' ? tenantId : undefined,
+        groupTenantIds: target === 'group' ? groupTenantIds : undefined,
+      })
       navigate('/admin/reminders')
-    }, 300)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -57,11 +79,11 @@ export function ReminderNew() {
               label="Tenant"
               value={tenantId}
               onChange={(event) => setTenantId(event.target.value)}
-              options={mockTenants.map((tenant) => ({ value: tenant.id, label: `${tenant.name} (${tenant.unitNumber})` }))}
+              options={tenants.map((tenant) => ({ value: tenant.id, label: `${tenant.name} (${tenant.unitNumber})` }))}
             />
           ) : null}
           {target === 'group' ? (
-            <TenantMultiSelect tenants={mockTenants} selectedTenantIds={groupTenantIds} onChange={setGroupTenantIds} />
+            <TenantMultiSelect tenants={tenants} selectedTenantIds={groupTenantIds} onChange={setGroupTenantIds} />
           ) : null}
           <Input
             label="Scheduled for"

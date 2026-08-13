@@ -1,21 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Card, Input, StatusBadge, Table, Text } from '../../../components'
 import type { TableColumn } from '../../../components'
 import { BackLink } from '../components/BackLink'
 import { DetailField } from '../components/DetailField'
 import { PageHeader } from '../components/PageHeader'
-import { Select } from '../components/Select'
-import { mockMaintenanceRequests, mockPayments } from '../data/mockData'
-import type { AccountStatus, MaintenanceRequest, Payment, RentStatus, TenantStatus } from '../data/types'
-import { getTenant, generateTempPassword, updateTenant } from './data'
+import { getMaintenanceRequestsByTenant } from '../maintenance/data'
+import { getPaymentsByTenant } from '../payments/data'
+import type { AccountStatus, MaintenanceRequest, Payment, RentStatus, Tenant, TenantStatus } from '../data/types'
+import { getTenant, resetTenantPassword, updateTenant } from './data'
 import { TempPasswordReveal } from './TempPasswordReveal'
 
-const rentStatusOptions: { value: RentStatus; label: string }[] = [
-  { value: 'paid', label: 'Paid' },
-  { value: 'due', label: 'Due' },
-  { value: 'overdue', label: 'Overdue' },
-]
+const rentStatusLabel: Record<RentStatus, string> = {
+  paid: 'Paid',
+  due: 'Due',
+  overdue: 'Overdue',
+}
+
+const rentStatusVariant: Record<RentStatus, 'success' | 'warning' | 'danger'> = {
+  paid: 'success',
+  due: 'warning',
+  overdue: 'danger',
+}
 
 const leaseStatusLabel: Record<TenantStatus, string> = {
   active: 'Active',
@@ -84,18 +90,53 @@ const maintenanceColumns: TableColumn<MaintenanceRequest>[] = [
   },
 ]
 
-// TODO: fetch this tenant from GET /tenants/:tenantId and save via PATCH
-// once the backend is reachable — see getTenant()/updateTenant() in ./data.ts.
+// Fetches this tenant from GET /tenants/:tenantId and saves via PATCH — see
+// getTenant()/updateTenant() in ./data.ts. `rentStatus` is read-only here
+// (derived server-side from RentCharge state, never client-settable).
 export function TenantDetail() {
   const { tenantId } = useParams<{ tenantId: string }>()
-  const tenant = tenantId ? getTenant(tenantId) : undefined
+  const [tenant, setTenant] = useState<Tenant | undefined>(undefined)
+  const [loading, setLoading] = useState(true)
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [maintenance, setMaintenance] = useState<MaintenanceRequest[]>([])
 
-  const [leaseEnd, setLeaseEnd] = useState(tenant?.leaseEnd ?? '')
-  const [monthlyRent, setMonthlyRent] = useState(tenant ? String(tenant.monthlyRent) : '')
-  const [rentStatus, setRentStatus] = useState<RentStatus>(tenant?.rentStatus ?? 'due')
+  const [leaseEnd, setLeaseEnd] = useState('')
+  const [monthlyRent, setMonthlyRent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
   const [resetTempPassword, setResetTempPassword] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!tenantId) return
+    let cancelled = false
+    setLoading(true)
+    Promise.all([getTenant(tenantId), getPaymentsByTenant(tenantId), getMaintenanceRequestsByTenant(tenantId)])
+      .then(([found, tenantPayments, tenantMaintenance]) => {
+        if (cancelled) return
+        setTenant(found)
+        setPayments(tenantPayments)
+        setMaintenance(tenantMaintenance)
+        if (found) {
+          setLeaseEnd(found.leaseEnd)
+          setMonthlyRent(String(found.monthlyRent))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [tenantId])
+
+  if (loading) {
+    return (
+      <div>
+        <BackLink to="/admin/tenants" label="Back to tenants" />
+        <Text variant="body">Loading…</Text>
+      </div>
+    )
+  }
 
   if (!tenant) {
     return (
@@ -108,36 +149,35 @@ export function TenantDetail() {
 
   const currentTenant = tenant
 
-  const hasChanges =
-    leaseEnd !== currentTenant.leaseEnd || Number(monthlyRent) !== currentTenant.monthlyRent || rentStatus !== currentTenant.rentStatus
+  const hasChanges = leaseEnd !== currentTenant.leaseEnd || Number(monthlyRent) !== currentTenant.monthlyRent
 
-  function handleSave() {
+  async function handleSave() {
     setIsSaving(true)
-    updateTenant(currentTenant.id, {
-      leaseEnd,
-      monthlyRent: Number(monthlyRent),
-      rentStatus,
-    })
-    window.setTimeout(() => {
+    try {
+      const updated = await updateTenant(currentTenant.id, {
+        leaseEnd,
+        monthlyRent: Number(monthlyRent),
+      })
+      if (updated) setTenant(updated)
+    } finally {
       setIsSaving(false)
-    }, 300)
+    }
   }
 
-  function handleResetPassword() {
+  async function handleResetPassword() {
     setIsResettingPassword(true)
-    const tempPassword = generateTempPassword()
-    // Reset puts the account back in the same "temporary" state a brand-new
-    // account starts in, so the accountStatus badge and mustChangePassword
-    // stay consistent with each other.
-    updateTenant(currentTenant.id, { accountStatus: 'temporary', mustChangePassword: true })
-    window.setTimeout(() => {
+    try {
+      const result = await resetTenantPassword(currentTenant.id)
+      setTenant({ ...currentTenant, accountStatus: 'temporary', mustChangePassword: true })
+      setResetTempPassword(result.tempPassword)
+    } finally {
       setIsResettingPassword(false)
-      setResetTempPassword(tempPassword)
-    }, 300)
+    }
   }
 
-  const tenantPayments = mockPayments.filter((payment) => payment.tenantId === currentTenant.id)
-  const tenantMaintenance = mockMaintenanceRequests.filter((request) => request.tenantId === currentTenant.id)
+  const tenantPayments = payments
+  const tenantMaintenance = maintenance
+
 
   return (
     <div>
@@ -165,12 +205,9 @@ export function TenantDetail() {
           value={monthlyRent}
           onChange={(event) => setMonthlyRent(event.target.value)}
         />
-        <Select
-          label="Rent status"
-          value={rentStatus}
-          onChange={(event) => setRentStatus(event.target.value as RentStatus)}
-          options={rentStatusOptions}
-        />
+        <DetailField label="Rent status">
+          <StatusBadge variant={rentStatusVariant[currentTenant.rentStatus]} label={rentStatusLabel[currentTenant.rentStatus]} />
+        </DetailField>
         <div className="flex items-end">
           <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
             {isSaving ? 'Saving…' : 'Save changes'}

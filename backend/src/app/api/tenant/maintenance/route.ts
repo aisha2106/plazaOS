@@ -9,7 +9,7 @@ import { withErrorHandling, requireRole, OPTIONS as corsOptions } from '@/lib/ro
 
 export { corsOptions as OPTIONS }
 
-function toPublicRequest(doc: any, origin: string) {
+function toPublicRequest(doc: any) {
   return {
     id: doc._id.toString(),
     title: doc.title,
@@ -18,7 +18,7 @@ function toPublicRequest(doc: any, origin: string) {
     category: doc.category,
     status: doc.status,
     createdAt: doc.createdAt.toISOString().slice(0, 10),
-    images: (doc.images ?? []).map((filename: string) => `${origin}/api/uploads/maintenance/${filename}`),
+    images: (doc.images ?? []).map((image: { url: string }) => image.url),
   }
 }
 
@@ -38,7 +38,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     MaintenanceRequest.countDocuments(filter),
   ])
 
-  return NextResponse.json({ data: docs.map((doc) => toPublicRequest(doc, request.nextUrl.origin)), total })
+  return NextResponse.json({ data: docs.map((doc) => toPublicRequest(doc)), total })
 })
 
 // multipart/form-data — text fields (title/description/priority/category) plus
@@ -71,7 +71,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   if (!parsed.success) throw new ApiError('Title and description are required', 400)
 
   const imageFiles = form.getAll('images').filter((entry): entry is File => entry instanceof File)
-  const filenames = await saveMaintenanceImages(imageFiles)
+  const images = await saveMaintenanceImages(imageFiles)
 
   await dbConnect()
   const user = await User.findById(auth.sub)
@@ -86,7 +86,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     description: parsed.data.description,
     priority: parsed.data.priority ?? 'medium',
     category: parsed.data.category,
-    images: filenames,
+    images,
   })
 
   return NextResponse.json({ success: true, id: doc._id.toString() })

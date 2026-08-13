@@ -1,11 +1,12 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Button, Card, Input, StatusBadge, Text } from '../../../components'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
 import { TenantMultiSelect } from '../components/TenantMultiSelect'
 import { Textarea } from '../components/Textarea'
-import { mockAnnouncements, mockTenants } from '../data/mockData'
-import type { Announcement, AnnouncementAudience } from '../data/types'
+import { getTenants } from '../tenants/data'
+import type { Announcement, AnnouncementAudience, Tenant } from '../data/types'
+import { addAnnouncement, getAnnouncements } from './data'
 
 const audienceOptions: { value: AnnouncementAudience; label: string }[] = [
   { value: 'all', label: 'All tenants' },
@@ -17,37 +18,50 @@ function audienceLabel(announcement: Announcement): string {
   return `${announcement.audienceTenantIds.length} tenant${announcement.audienceTenantIds.length === 1 ? '' : 's'}`
 }
 
-// TODO: fetch from GET /announcements and submit new ones to POST /announcements
-// once the backend is reachable — new posts are only kept in local state for now.
+// Fetches from GET /announcements and submits new ones to POST /announcements
+// — see getAnnouncements()/addAnnouncement() in ./data.ts.
 export function Announcements() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(mockAnnouncements)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [tenants, setTenants] = useState<Tenant[]>([])
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [audience, setAudience] = useState<AnnouncementAudience>('all')
   const [selectedTenantIds, setSelectedTenantIds] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    let cancelled = false
+    getAnnouncements({ pageSize: 100 }).then((result) => {
+      if (!cancelled) setAnnouncements(result.data)
+    })
+    getTenants({ pageSize: 1000 }).then((result) => {
+      if (!cancelled) setTenants(result.data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
-    const newAnnouncement: Announcement = {
-      id: `announce-${Date.now()}`,
-      title,
-      body,
-      audience,
-      audienceTenantIds: audience === 'selected' ? selectedTenantIds : [],
-      createdAt: new Date().toISOString().slice(0, 10),
-      author: 'Admin',
-    }
-    window.setTimeout(() => {
+    try {
+      const newAnnouncement = await addAnnouncement({
+        title,
+        body,
+        audience,
+        audienceTenantIds: audience === 'selected' ? selectedTenantIds : [],
+      })
       setAnnouncements((current) => [newAnnouncement, ...current])
       setTitle('')
       setBody('')
       setAudience('all')
       setSelectedTenantIds([])
+    } finally {
       setIsSubmitting(false)
-    }, 300)
+    }
   }
+
 
   return (
     <div>
@@ -67,7 +81,7 @@ export function Announcements() {
             options={audienceOptions}
           />
           {audience === 'selected' ? (
-            <TenantMultiSelect tenants={mockTenants} selectedTenantIds={selectedTenantIds} onChange={setSelectedTenantIds} />
+            <TenantMultiSelect tenants={tenants} selectedTenantIds={selectedTenantIds} onChange={setSelectedTenantIds} />
           ) : null}
           <Button type="submit" disabled={isSubmitting || (audience === 'selected' && selectedTenantIds.length === 0)}>
             {isSubmitting ? 'Posting…' : 'Post announcement'}

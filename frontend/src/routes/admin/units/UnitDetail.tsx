@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Card, Input, StatusBadge, Text } from '../../../components'
 import { BackLink } from '../components/BackLink'
 import { DetailField } from '../components/DetailField'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
-import type { UnitStatus } from '../data/types'
+import type { Unit, UnitStatus } from '../data/types'
 import { getUnit, updateUnit } from './data'
 
 const statusLabel: Record<UnitStatus, string> = {
@@ -26,17 +26,49 @@ const statusOptions: { value: UnitStatus; label: string }[] = [
   { value: 'maintenance', label: 'Under maintenance' },
 ]
 
-// TODO: fetch this unit from GET /units/:unitId and save via PATCH once the
-// backend is reachable — see getUnit()/updateUnit() in ./data.ts.
+// Fetches this unit from GET /units/:unitId and saves via PATCH — see
+// getUnit()/updateUnit() in ./data.ts.
 export function UnitDetail() {
   const { unitId } = useParams<{ unitId: string }>()
-  const unit = unitId ? getUnit(unitId) : undefined
-
-  const [floor, setFloor] = useState(unit?.floor ?? '')
-  const [sizeSqft, setSizeSqft] = useState(unit ? String(unit.sizeSqft) : '')
-  const [monthlyRent, setMonthlyRent] = useState(unit ? String(unit.monthlyRent) : '')
-  const [status, setStatus] = useState<UnitStatus>(unit?.status ?? 'vacant')
+  const [unit, setUnit] = useState<Unit | undefined>(undefined)
+  const [loading, setLoading] = useState(true)
+  const [floor, setFloor] = useState('')
+  const [sizeSqft, setSizeSqft] = useState('')
+  const [monthlyRent, setMonthlyRent] = useState('')
+  const [status, setStatus] = useState<UnitStatus>('vacant')
   const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (!unitId) return
+    let cancelled = false
+    setLoading(true)
+    getUnit(unitId)
+      .then((found) => {
+        if (cancelled) return
+        setUnit(found)
+        if (found) {
+          setFloor(found.floor)
+          setSizeSqft(String(found.sizeSqft))
+          setMonthlyRent(String(found.monthlyRent))
+          setStatus(found.status)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [unitId])
+
+  if (loading) {
+    return (
+      <div>
+        <BackLink to="/admin/units" label="Back to units" />
+        <Text variant="body">Loading…</Text>
+      </div>
+    )
+  }
 
   if (!unit) {
     return (
@@ -55,18 +87,21 @@ export function UnitDetail() {
     Number(monthlyRent) !== currentUnit.monthlyRent ||
     status !== currentUnit.status
 
-  function handleSave() {
+  async function handleSave() {
     setIsSaving(true)
-    updateUnit(currentUnit.id, {
-      floor,
-      sizeSqft: Number(sizeSqft),
-      monthlyRent: Number(monthlyRent),
-      status,
-    })
-    window.setTimeout(() => {
+    try {
+      const updated = await updateUnit(currentUnit.id, {
+        floor,
+        sizeSqft: Number(sizeSqft),
+        monthlyRent: Number(monthlyRent),
+        status,
+      })
+      if (updated) setUnit(updated)
+    } finally {
       setIsSaving(false)
-    }, 300)
+    }
   }
+
 
   return (
     <div>

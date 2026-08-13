@@ -1,23 +1,46 @@
-import { useForm } from 'react-hook-form'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Input, Text } from '../../components'
+import { Button, Card, Select, StatusBadge, Text } from '../../components'
 import { usePayments } from '../../hooks/usePayments'
+import { useRentCharges } from '../../hooks/useRentCharges'
+import type { RentChargeStatus } from '../../lib/services/rentChargeService'
 
-type FormValues = { amount: number }
+const statusVariant: Record<RentChargeStatus, 'success' | 'warning' | 'danger' | 'info'> = {
+  paid: 'success',
+  due: 'warning',
+  overdue: 'danger',
+  upcoming: 'info',
+}
 
 export function PaymentsNew() {
-  const { register, handleSubmit, formState } = useForm<FormValues>({ defaultValues: { amount: 0 } })
+  const { data, isLoading } = useRentCharges()
   const { payMutation } = usePayments()
   const navigate = useNavigate()
+  const [selectedId, setSelectedId] = useState('')
 
-  async function onSubmit(values: FormValues) {
-    // Basic client-side validation: amount must be > 0
-    if (!values.amount || values.amount <= 0) {
-      return
+  const rentCharges = data?.data ?? []
+  const firstChargeId = rentCharges[0]?.id
+
+  useEffect(() => {
+    if (!selectedId && firstChargeId) {
+      setSelectedId(firstChargeId)
     }
+  }, [firstChargeId, selectedId])
+
+  const selected = rentCharges.find((charge) => charge.id === selectedId)
+
+  async function onSubmit() {
+    if (!selectedId) return
 
     try {
-      await payMutation.mutateAsync(values.amount)
+      const result = await payMutation.mutateAsync(selectedId)
+      if (result.checkoutUrl) {
+        // Hand off to Paystack's hosted checkout page — the payment isn't
+        // actually confirmed until Paystack redirects back and the webhook
+        // fires, so don't navigate to the payments list yet.
+        window.location.href = result.checkoutUrl
+        return
+      }
       navigate('/tenant/payments')
     } catch (err) {
       // mutation exposes error; keep behavior minimal
@@ -29,24 +52,38 @@ export function PaymentsNew() {
     <div className="px-4 sm:px-6">
       <Text variant="h1">Pay Rent</Text>
       <Card className="mt-4">
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <Input
-            label="Amount"
-            type="number"
-            {...register('amount', { valueAsNumber: true, required: true, min: 0.01 })}
-          />
-          {formState.errors.amount ? (
-            <Text variant="bodySmall" className="text-danger">Please enter an amount greater than 0.</Text>
-          ) : null}
-          <div className="flex justify-end">
-            <Button type="submit" disabled={payMutation.status === 'pending' || formState.isSubmitting}>
-              {payMutation.status === 'pending' ? 'Processing…' : 'Pay'}
-            </Button>
+        {isLoading ? (
+          <Text variant="bodySmall">Loading outstanding charges…</Text>
+        ) : rentCharges.length === 0 ? (
+          <Text variant="bodySmall">You have no outstanding rent charges.</Text>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <Select
+              label="Rent charge"
+              value={selectedId}
+              onChange={(event) => setSelectedId(event.target.value)}
+              options={rentCharges.map((charge) => ({
+                value: charge.id,
+                label: `${charge.period} — $${charge.amount.toFixed(2)} (due ${charge.dueDate})`,
+              }))}
+            />
+            {selected ? (
+              <div className="flex items-center gap-2">
+                <Text variant="bodySmall">Status:</Text>
+                <StatusBadge variant={statusVariant[selected.status]} label={selected.status} />
+              </div>
+            ) : null}
+            <div className="flex justify-end">
+              <Button type="button" onClick={onSubmit} disabled={payMutation.status === 'pending' || !selectedId}>
+                {payMutation.status === 'pending' ? 'Processing…' : 'Pay'}
+              </Button>
+            </div>
+            {payMutation.status === 'error' ? <Text variant="bodySmall" className="text-danger">Payment failed. Please try again.</Text> : null}
+            {payMutation.status === 'success' ? <Text variant="bodySmall" className="text-success">Payment successful.</Text> : null}
           </div>
-          {payMutation.status === 'error' ? <Text variant="bodySmall" className="text-danger">Payment failed. Please try again.</Text> : null}
-          {payMutation.status === 'success' ? <Text variant="bodySmall" className="text-success">Payment successful.</Text> : null}
-        </form>
+        )}
       </Card>
     </div>
   )
 }
+

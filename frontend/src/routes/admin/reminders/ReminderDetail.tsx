@@ -1,10 +1,11 @@
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Card, StatusBadge, Text } from '../../../components'
 import { BackLink } from '../components/BackLink'
 import { DetailField } from '../components/DetailField'
 import { PageHeader } from '../components/PageHeader'
-import { getReminderById } from '../data/mockData'
-import type { ReminderStatus, ReminderType } from '../data/types'
+import type { Reminder, ReminderStatus, ReminderType } from '../data/types'
+import { getReminder } from './data'
 
 const statusLabel: Record<ReminderStatus, string> = {
   scheduled: 'Scheduled',
@@ -23,10 +24,36 @@ const typeLabel: Record<ReminderType, string> = {
   manual: 'Manual',
 }
 
-// TODO: fetch this reminder from GET /reminders/:reminderId once the backend is reachable.
+// Fetches this reminder from GET /reminders/:reminderId.
 export function ReminderDetail() {
   const { reminderId } = useParams<{ reminderId: string }>()
-  const reminder = reminderId ? getReminderById(reminderId) : undefined
+  const [reminder, setReminder] = useState<Reminder | undefined>(undefined)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!reminderId) return
+    let cancelled = false
+    setLoading(true)
+    getReminder(reminderId)
+      .then((found) => {
+        if (!cancelled) setReminder(found)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [reminderId])
+
+  if (loading) {
+    return (
+      <div>
+        <BackLink to="/admin/reminders" label="Back to reminders" />
+        <Text variant="body">Loading…</Text>
+      </div>
+    )
+  }
 
   if (!reminder) {
     return (

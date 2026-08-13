@@ -3,8 +3,9 @@ import { Button, Input, StatusBadge, Table, Text } from '../../../components'
 import type { TableColumn } from '../../../components'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
+import { useAsyncData } from '../components/useAsyncData'
 import type { MaintenancePriority, MaintenanceRequest, MaintenanceStatus } from '../data/types'
-import { getMaintenanceRequests, type MaintenanceSortField, type SortDirection } from './data'
+import { getMaintenanceRequests, type GetMaintenanceRequestsResult, type MaintenanceSortField, type SortDirection } from './data'
 
 const PAGE_SIZE = 20
 
@@ -71,7 +72,7 @@ const columns: TableColumn<MaintenanceRequest>[] = [
   },
 ]
 
-// TODO: fetch maintenance requests from GET /maintenance once the backend is reachable — see getMaintenanceRequests() in ./data.ts.
+// Fetches maintenance requests from GET /maintenance (see getMaintenanceRequests() in ./data.ts).
 export function MaintenanceList() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -82,7 +83,12 @@ export function MaintenanceList() {
   const sortDir = (searchParams.get('sortDir') as SortDirection | null) ?? 'asc'
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1)
 
-  const { data, total, pageSize } = getMaintenanceRequests({ search, status, priority, sortBy, sortDir, page, pageSize: PAGE_SIZE })
+  const { data: result } = useAsyncData<GetMaintenanceRequestsResult>(
+    () => getMaintenanceRequests({ search, status, priority, sortBy, sortDir, page, pageSize: PAGE_SIZE }),
+    [search, status, priority, sortBy, sortDir, page],
+    { data: [], total: 0, page, pageSize: PAGE_SIZE },
+  )
+  const { data, total, pageSize } = result
 
   // Any filter/sort change goes back to page 1; page navigation is handled separately below.
   function updateParams(patch: Record<string, string | null>) {

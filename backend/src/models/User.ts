@@ -12,10 +12,6 @@ const userSchema = new Schema(
     phone: { type: String },
     unitId: { type: Schema.Types.ObjectId, ref: 'Unit' },
     unitNumber: { type: String },
-    leaseStart: { type: String },
-    leaseEnd: { type: String },
-    monthlyRent: { type: Number },
-    rentStatus: { type: String, enum: ['paid', 'due', 'overdue'] },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
 
     accountStatus: { type: String, enum: ['temporary', 'active'], required: true, default: 'active' },

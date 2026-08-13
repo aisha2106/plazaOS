@@ -65,7 +65,7 @@ export interface MaintenanceRequest {
   description: string
   status: MaintenanceStatus
   priority: MaintenancePriority
-  imageUrl: string
+  images: string[]
   notes: string
   createdAt: string
   resolvedAt: string | null
@@ -98,7 +98,7 @@ export interface Reminder {
   status: ReminderStatus
 }
 
-export type CalendarEventType = 'lease_renewal' | 'reminder' | 'payment_due' | 'other'
+export type CalendarEventType = 'lease_renewal' | 'reminder' | 'rent_due' | 'other'
 
 export interface CalendarEvent {
   id: string

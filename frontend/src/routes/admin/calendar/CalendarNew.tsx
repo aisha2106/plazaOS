@@ -10,10 +10,10 @@ import { addCalendarEvent } from './data'
 const typeOptions: { value: CalendarEventType; label: string }[] = [
   { value: 'lease_renewal', label: 'Lease renewal' },
   { value: 'reminder', label: 'Reminder' },
-  { value: 'payment_due', label: 'Payment due' },
+  { value: 'rent_due', label: 'Rent due' },
 ]
 
-// TODO: submit to POST /calendar once the backend is reachable — see addCalendarEvent() in ./data.ts.
+// Submits to POST /calendar — see addCalendarEvent() in ./data.ts.
 export function CalendarNew() {
   const navigate = useNavigate()
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -22,18 +22,20 @@ export function CalendarNew() {
   const [type, setType] = useState<CalendarEventType>('reminder')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
-    addCalendarEvent({
-      title,
-      type,
-      date,
-      relatedLabel: relatedLabel || undefined,
-    })
-    window.setTimeout(() => {
+    try {
+      await addCalendarEvent({
+        title,
+        type,
+        date,
+        relatedLabel: relatedLabel || undefined,
+      })
       navigate('/admin/calendar')
-    }, 300)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (

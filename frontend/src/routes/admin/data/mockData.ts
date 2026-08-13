@@ -44,12 +44,12 @@ export const mockPayments: Payment[] = [
 ]
 
 export const mockMaintenanceRequests: MaintenanceRequest[] = [
-  { id: 'maint-1', tenantId: 'tenant-1', tenantName: 'Jane Cooper', unitId: 'unit-1', unitNumber: 'A-101', title: 'Leaking kitchen faucet', description: 'The faucet has been dripping steadily for two days.', status: 'open', priority: 'medium', imageUrl: 'https://placehold.co/640x480?text=Maintenance+Photo', notes: '', createdAt: '2026-07-29', resolvedAt: null },
-  { id: 'maint-2', tenantId: 'tenant-3', tenantName: 'Wade Warren', unitId: 'unit-3', unitNumber: 'B-201', title: 'AC not cooling', description: 'Unit blows warm air, checked filter already.', status: 'in_progress', priority: 'high', imageUrl: 'https://placehold.co/640x480?text=Maintenance+Photo', notes: 'Technician scheduled for Aug 5.', createdAt: '2026-07-25', resolvedAt: null },
-  { id: 'maint-3', tenantId: 'tenant-4', tenantName: 'Esther Howard', unitId: 'unit-5', unitNumber: 'B-204', title: 'Broken window latch', description: 'Latch on the west-facing window won’t catch.', status: 'resolved', priority: 'low', imageUrl: 'https://placehold.co/640x480?text=Maintenance+Photo', notes: 'Latch replaced.', createdAt: '2026-07-10', resolvedAt: '2026-07-12' },
-  { id: 'maint-4', tenantId: 'tenant-5', tenantName: 'Cameron Williamson', unitId: 'unit-6', unitNumber: 'C-301', title: 'Flickering hallway light', description: 'Light outside the unit flickers intermittently.', status: 'open', priority: 'low', imageUrl: 'https://placehold.co/640x480?text=Maintenance+Photo', notes: '', createdAt: '2026-07-30', resolvedAt: null },
-  { id: 'maint-5', tenantId: 'tenant-6', tenantName: 'Guy Hawkins', unitId: 'unit-8', unitNumber: 'C-310', title: 'Clogged drain', description: 'Bathroom sink drains very slowly.', status: 'in_progress', priority: 'medium', imageUrl: 'https://placehold.co/640x480?text=Maintenance+Photo', notes: 'Plumber snaked the drain, monitoring.', createdAt: '2026-07-22', resolvedAt: null },
-  { id: 'maint-6', tenantId: 'tenant-2', tenantName: 'Devon Lane', unitId: 'unit-2', unitNumber: 'A-102', title: 'Door lock sticking', description: 'Front door lock is hard to turn, may need lubrication or replacement.', status: 'resolved', priority: 'medium', imageUrl: 'https://placehold.co/640x480?text=Maintenance+Photo', notes: 'Lock lubricated and tested.', createdAt: '2026-07-05', resolvedAt: '2026-07-06' },
+  { id: 'maint-1', tenantId: 'tenant-1', tenantName: 'Jane Cooper', unitId: 'unit-1', unitNumber: 'A-101', title: 'Leaking kitchen faucet', description: 'The faucet has been dripping steadily for two days.', status: 'open', priority: 'medium', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: '', createdAt: '2026-07-29', resolvedAt: null },
+  { id: 'maint-2', tenantId: 'tenant-3', tenantName: 'Wade Warren', unitId: 'unit-3', unitNumber: 'B-201', title: 'AC not cooling', description: 'Unit blows warm air, checked filter already.', status: 'in_progress', priority: 'high', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Technician scheduled for Aug 5.', createdAt: '2026-07-25', resolvedAt: null },
+  { id: 'maint-3', tenantId: 'tenant-4', tenantName: 'Esther Howard', unitId: 'unit-5', unitNumber: 'B-204', title: 'Broken window latch', description: 'Latch on the west-facing window won’t catch.', status: 'resolved', priority: 'low', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Latch replaced.', createdAt: '2026-07-10', resolvedAt: '2026-07-12' },
+  { id: 'maint-4', tenantId: 'tenant-5', tenantName: 'Cameron Williamson', unitId: 'unit-6', unitNumber: 'C-301', title: 'Flickering hallway light', description: 'Light outside the unit flickers intermittently.', status: 'open', priority: 'low', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: '', createdAt: '2026-07-30', resolvedAt: null },
+  { id: 'maint-5', tenantId: 'tenant-6', tenantName: 'Guy Hawkins', unitId: 'unit-8', unitNumber: 'C-310', title: 'Clogged drain', description: 'Bathroom sink drains very slowly.', status: 'in_progress', priority: 'medium', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Plumber snaked the drain, monitoring.', createdAt: '2026-07-22', resolvedAt: null },
+  { id: 'maint-6', tenantId: 'tenant-2', tenantName: 'Devon Lane', unitId: 'unit-2', unitNumber: 'A-102', title: 'Door lock sticking', description: 'Front door lock is hard to turn, may need lubrication or replacement.', status: 'resolved', priority: 'medium', images: ['https://placehold.co/640x480?text=Maintenance+Photo'], notes: 'Lock lubricated and tested.', createdAt: '2026-07-05', resolvedAt: '2026-07-06' },
 ]
 
 export const mockAnnouncements: Announcement[] = [
@@ -71,7 +71,7 @@ export const mockCalendarEvents: CalendarEvent[] = [
   { id: 'event-2', title: 'Guy Hawkins lease renewal', type: 'lease_renewal', date: '2026-08-01', relatedLabel: 'C-310' },
   { id: 'event-3', title: 'Rent due reminder sent', type: 'reminder', date: '2026-07-29', relatedLabel: 'All tenants' },
   { id: 'event-4', title: 'Elevator outage reminder', type: 'reminder', date: '2026-08-02', relatedLabel: 'B block' },
-  { id: 'event-5', title: 'Rent due', type: 'payment_due', date: '2026-08-01', relatedLabel: 'All tenants' },
+  { id: 'event-5', title: 'Rent due', type: 'rent_due', date: '2026-08-01', relatedLabel: 'All tenants' },
   { id: 'event-6', title: 'Jane Cooper lease renewal', type: 'lease_renewal', date: '2026-01-31', relatedLabel: 'A-101' },
 ]
 

@@ -3,22 +3,23 @@ import { Button, Input, StatusBadge, Table, Text } from '../../../components'
 import type { TableColumn } from '../../../components'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
+import { useAsyncData } from '../components/useAsyncData'
 import type { CalendarEvent, CalendarEventType } from '../data/types'
-import { getCalendarEvents, type SortDirection } from './data'
+import { getCalendarEvents, type GetCalendarEventsResult, type SortDirection } from './data'
 
 const PAGE_SIZE = 20
 
 const typeLabel: Record<CalendarEventType, string> = {
   lease_renewal: 'Lease renewal',
   reminder: 'Reminder',
-  payment_due: 'Payment due',
+  rent_due: 'Rent due',
   other: 'Other',
 }
 
 const typeVariant: Record<CalendarEventType, 'info' | 'warning' | 'success' | 'danger'> = {
   lease_renewal: 'info',
   reminder: 'warning',
-  payment_due: 'danger',
+  rent_due: 'danger',
   other: 'success',
 }
 
@@ -26,7 +27,7 @@ const typeOptions: { value: 'all' | CalendarEventType; label: string }[] = [
   { value: 'all', label: 'All types' },
   { value: 'lease_renewal', label: 'Lease renewal' },
   { value: 'reminder', label: 'Reminder' },
-  { value: 'payment_due', label: 'Payment due' },
+  { value: 'rent_due', label: 'Rent due' },
 ]
 
 // NOTE: same reasoning as Units/Tenants/Maintenance — the shared Table
@@ -46,7 +47,7 @@ const columns: TableColumn<CalendarEvent>[] = [
   },
 ]
 
-// TODO: fetch events from GET /calendar once the backend is reachable — see getCalendarEvents() in ./data.ts.
+// Fetches events from GET /calendar (see getCalendarEvents() in ./data.ts).
 export function AdminCalendar() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -58,7 +59,12 @@ export function AdminCalendar() {
   const sortDir = (searchParams.get('sortDir') as SortDirection | null) ?? 'asc'
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1)
 
-  const { data, total, pageSize } = getCalendarEvents({ search, type, dateFrom, dateTo, sortDir, page, pageSize: PAGE_SIZE })
+  const { data: result } = useAsyncData<GetCalendarEventsResult>(
+    () => getCalendarEvents({ search, type, dateFrom, dateTo, sortDir, page, pageSize: PAGE_SIZE }),
+    [search, type, dateFrom, dateTo, sortDir, page],
+    { data: [], total: 0, page, pageSize: PAGE_SIZE },
+  )
+  const { data, total, pageSize } = result
 
   // Any filter/sort change goes back to page 1; page navigation is handled separately below.
   function updateParams(patch: Record<string, string | null>) {

@@ -13,7 +13,7 @@ const statusOptions: { value: UnitStatus; label: string }[] = [
   { value: 'maintenance', label: 'Under maintenance' },
 ]
 
-// TODO: submit to POST /units once the backend is reachable — see addUnit() in ./data.ts.
+// Submits to POST /units — see addUnit() in ./data.ts.
 export function UnitNew() {
   const navigate = useNavigate()
   const [unitNumber, setUnitNumber] = useState('')
@@ -23,19 +23,21 @@ export function UnitNew() {
   const [status, setStatus] = useState<UnitStatus>('vacant')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
-    const newUnit = addUnit({
-      unitNumber,
-      floor,
-      sizeSqft: Number(sizeSqft),
-      monthlyRent: Number(monthlyRent),
-      status,
-    })
-    window.setTimeout(() => {
+    try {
+      const newUnit = await addUnit({
+        unitNumber,
+        floor,
+        sizeSqft: Number(sizeSqft),
+        monthlyRent: Number(monthlyRent),
+        status,
+      })
       navigate(`/admin/units/${newUnit.id}`)
-    }, 300)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (

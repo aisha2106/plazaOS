@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Card, Input, Modal, Select, Table, Text, StatusBadge } from '../../components'
 import type { TableColumn } from '../../components'
 import type { StatusVariant } from '../../components/StatusBadge'
 import { usePayments } from '../../hooks/usePayments'
-import { DEFAULT_PAGE_SIZE, type Payment, type PaymentStatus } from '../../lib/services/paymentService'
+import { DEFAULT_PAGE_SIZE, paymentService, type Payment, type PaymentStatus } from '../../lib/services/paymentService'
 
 const statusVariantMap: Record<PaymentStatus, StatusVariant> = {
   paid: 'success',
@@ -15,11 +15,32 @@ const statusVariantMap: Record<PaymentStatus, StatusVariant> = {
 export function Payments() {
   const [page, setPage] = useState(1)
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data, isLoading, isError, refetch } = usePayments(page)
 
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [selected, setSelected] = useState<Payment | null>(null)
+
+  // Paystack redirects back here with `?reference=...&trxref=...` — re-check the
+  // real outcome rather than assuming success just because the browser returned.
+  useEffect(() => {
+    const reference = searchParams.get('reference')
+    if (!reference) return
+
+    paymentService
+      .verify(reference)
+      .catch((err) => console.error('Failed to verify payment', err))
+      .finally(() => {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('reference')
+          next.delete('trxref')
+          return next
+        }, { replace: true })
+        refetch()
+      })
+  }, [searchParams, setSearchParams, refetch])
 
   const columns: TableColumn<Payment>[] = [
     { key: 'date', header: 'Date' },

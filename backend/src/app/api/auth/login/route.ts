@@ -6,6 +6,7 @@ import { verifyPassword } from '@/lib/password'
 import { signToken } from '@/lib/jwt'
 import { ApiError } from '@/lib/api-error'
 import { withErrorHandling, OPTIONS as corsOptions } from '@/lib/route-handler'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export { corsOptions as OPTIONS }
 
@@ -20,6 +21,12 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const body = await request.json().catch(() => null)
   const parsed = loginSchema.safeParse(body)
   if (!parsed.success) throw new ApiError('Invalid email or password', 400)
+
+  // Blunt credential-stuffing/brute-force: cap attempts per source IP and,
+  // separately, per targeted account so a distributed attack against one
+  // email can't hide behind the looser per-IP limit.
+  rateLimit(`login:ip:${clientIp(request)}`, 20, 5 * 60_000)
+  rateLimit(`login:email:${parsed.data.email.toLowerCase()}`, 5, 5 * 60_000)
 
   await dbConnect()
   const user = await User.findOne({ email: parsed.data.email.toLowerCase() })

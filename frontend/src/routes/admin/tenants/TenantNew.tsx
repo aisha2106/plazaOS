@@ -1,38 +1,53 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Card, Input, Text } from '../../../components'
 import { BackLink } from '../components/BackLink'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
-import { getUnits, updateUnit } from '../units/data'
+import { getUnits } from '../units/data'
 import { TempPasswordReveal } from './TempPasswordReveal'
-import { addTenant, generateTempPassword } from './data'
-import type { Tenant } from '../data/types'
+import { addTenant } from './data'
+import type { Tenant, Unit } from '../data/types'
 
 interface CreatedTenant {
   tenant: Tenant
   tempPassword: string
 }
 
-// TODO: submit to POST /tenants once the backend is reachable — see addTenant() in ./data.ts.
-// The real backend must also generate + hash the temporary password
-// server-side instead of the client-side generateTempPassword() used here.
+// Submits to POST /tenants — see addTenant() in ./data.ts. The backend
+// creates the tenant, assigns the unit, and creates the lease atomically, so
+// no separate updateUnit() call is needed here.
 export function TenantNew() {
   // Large pageSize so this dropdown always has every vacant unit, not just
   // page 1 — this is a UI convenience read, not the paginated list view.
-  // Computed on every render (not memoized) so it reflects the latest unit
-  // data, e.g. right after adding a unit or assigning the last vacant one.
-  const { data: vacantUnits } = getUnits({ status: 'vacant', pageSize: 1000 })
+  const [vacantUnits, setVacantUnits] = useState<Unit[]>([])
+  const [unitsLoaded, setUnitsLoaded] = useState(false)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [selectedUnitId, setSelectedUnitId] = useState(vacantUnits[0]?.id ?? '')
+  const [selectedUnitId, setSelectedUnitId] = useState('')
   const [leaseStart, setLeaseStart] = useState(() => new Date().toISOString().slice(0, 10))
   const [leaseEnd, setLeaseEnd] = useState('')
-  const [monthlyRent, setMonthlyRent] = useState(vacantUnits[0] ? String(vacantUnits[0].monthlyRent) : '')
+  const [monthlyRent, setMonthlyRent] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [created, setCreated] = useState<CreatedTenant | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    getUnits({ status: 'vacant', pageSize: 1000 }).then((result) => {
+      if (cancelled) return
+      setVacantUnits(result.data)
+      setUnitsLoaded(true)
+      if (result.data[0]) {
+        setSelectedUnitId(result.data[0].id)
+        setMonthlyRent(String(result.data[0].monthlyRent))
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function handleUnitChange(unitId: string) {
     setSelectedUnitId(unitId)
@@ -42,33 +57,27 @@ export function TenantNew() {
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const selectedUnit = vacantUnits.find((unit) => unit.id === selectedUnitId)
     if (!selectedUnit) return
 
     setIsSubmitting(true)
-    const tempPassword = generateTempPassword()
-
-    const newTenant = addTenant({
-      name,
-      email,
-      phone,
-      unitId: selectedUnit.id,
-      unitNumber: selectedUnit.unitNumber,
-      leaseStart,
-      leaseEnd,
-      monthlyRent: Number(monthlyRent),
-    })
-
-    // Two distinct calls, not merged: creating the tenant account and
-    // marking the unit occupied/linked are separate mutations.
-    updateUnit(selectedUnit.id, { status: 'occupied', tenantId: newTenant.id, tenantName: newTenant.name })
-
-    window.setTimeout(() => {
+    try {
+      const result = await addTenant({
+        name,
+        email,
+        phone,
+        unitId: selectedUnit.id,
+        unitNumber: selectedUnit.unitNumber,
+        leaseStart,
+        leaseEnd,
+        monthlyRent: Number(monthlyRent),
+      })
+      setCreated(result)
+    } finally {
       setIsSubmitting(false)
-      setCreated({ tenant: newTenant, tempPassword })
-    }, 300)
+    }
   }
 
   if (created) {
@@ -89,7 +98,7 @@ export function TenantNew() {
     )
   }
 
-  if (vacantUnits.length === 0) {
+  if (unitsLoaded && vacantUnits.length === 0) {
     return (
       <div>
         <BackLink to="/admin/tenants" label="Back to tenants" />
@@ -104,6 +113,7 @@ export function TenantNew() {
       </div>
     )
   }
+
 
   return (
     <div>

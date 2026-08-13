@@ -39,14 +39,18 @@ export const paymentService = {
     }
   },
 
-  async pay(amount: number): Promise<{ success: boolean; id?: string }>
+  async pay(rentChargeId: string): Promise<{ success: boolean; id?: string; checkoutUrl?: string }>
   {
     try {
-      return await api.post('/tenant/payments', { amount })
+      return await api.post('/tenant/payments', { rentChargeId })
     } catch (err) {
       if (!import.meta.env.DEV) throw err
       // DEV-only: simulate a successful payment when there's no backend to hit.
       return new Promise((res) => setTimeout(() => res({ success: true, id: 'p-new' }), 700))
     }
+  },
+
+  async verify(reference: string): Promise<{ id: string; status: PaymentStatus }> {
+    return api.get(`/tenant/payments/verify?reference=${encodeURIComponent(reference)}`)
   },
 }

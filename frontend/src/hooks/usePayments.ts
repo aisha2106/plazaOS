@@ -7,7 +7,7 @@ export function usePayments(page = 1) {
     queryFn: () => paymentService.list(page),
   })
   const payMutation = useMutation({
-    mutationFn: (amount: number) => paymentService.pay(amount),
+    mutationFn: (rentChargeId: string) => paymentService.pay(rentChargeId),
   })
   return { ...query, payMutation }
 }

@@ -5,6 +5,7 @@ import { User } from '@/models/User'
 import { hashPassword } from '@/lib/password'
 import { ApiError } from '@/lib/api-error'
 import { withErrorHandling, requireAuth, OPTIONS as corsOptions } from '@/lib/route-handler'
+import { rateLimit } from '@/lib/rate-limit'
 
 export { corsOptions as OPTIONS }
 
@@ -18,6 +19,7 @@ const setPasswordSchema = z
 // mustChangePassword: true both call this on first login.
 export const POST = withErrorHandling(async (request: NextRequest) => {
   const auth = requireAuth(request)
+  rateLimit(`set-password:${auth.sub}`, 5, 15 * 60_000)
   const body = await request.json().catch(() => null)
   const parsed = setPasswordSchema.safeParse(body)
   if (!parsed.success) throw new ApiError('Password must be at least 8 characters', 400)

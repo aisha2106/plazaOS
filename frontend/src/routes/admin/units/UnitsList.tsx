@@ -3,8 +3,9 @@ import { Button, Input, StatusBadge, Table, Text } from '../../../components'
 import type { TableColumn } from '../../../components'
 import { PageHeader } from '../components/PageHeader'
 import { Select } from '../components/Select'
+import { useAsyncData } from '../components/useAsyncData'
 import type { Unit, UnitStatus } from '../data/types'
-import { getAvailableFloors, getUnits, type SortDirection, type UnitSortField } from './data'
+import { getAvailableFloors, getUnits, type GetUnitsResult, type SortDirection, type UnitSortField } from './data'
 
 const PAGE_SIZE = 20
 
@@ -63,7 +64,7 @@ const columns: TableColumn<Unit>[] = [
   },
 ]
 
-// TODO: fetch units from GET /units once the backend is reachable — see getUnits() in ./data.ts.
+// Fetches units from GET /units (see getUnits() in ./data.ts).
 export function UnitsList() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -75,8 +76,14 @@ export function UnitsList() {
   const sortDir = (searchParams.get('sortDir') as SortDirection | null) ?? 'asc'
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1)
 
-  const { data, total, pageSize } = getUnits({ search, status, floor, sortBy, sortDir, page, pageSize: PAGE_SIZE })
-  const floorOptions = [{ value: 'all', label: 'All floors' }, ...getAvailableFloors().map((f) => ({ value: f, label: `Floor ${f}` }))]
+  const { data: result } = useAsyncData<GetUnitsResult>(
+    () => getUnits({ search, status, floor, sortBy, sortDir, page, pageSize: PAGE_SIZE }),
+    [search, status, floor, sortBy, sortDir, page],
+    { data: [], total: 0, page, pageSize: PAGE_SIZE },
+  )
+  const { data, total, pageSize } = result
+  const { data: floors } = useAsyncData<string[]>(() => getAvailableFloors(), [], [])
+  const floorOptions = [{ value: 'all', label: 'All floors' }, ...floors.map((f) => ({ value: f, label: `Floor ${f}` }))]
 
   // Any filter/sort change goes back to page 1; page navigation is handled separately below.
   function updateParams(patch: Record<string, string | null>) {

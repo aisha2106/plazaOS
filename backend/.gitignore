@@ -33,9 +33,6 @@ yarn-error.log*
 .env*
 !.env.example
 
-# uploaded files (local-disk MVP storage for maintenance images — never commit tenant uploads)
-/uploads
-
 # vercel
 .vercel
 
