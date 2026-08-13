@@ -17,6 +17,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Local testing reference (contains real secret values)
+TESTING_CREDENTIALS.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
