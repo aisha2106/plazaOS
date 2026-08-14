@@ -8,6 +8,8 @@ export interface AuthUser {
   name: string
   email: string
   role: Role
+  /** Backend-provided flag for administrator-provisioned tenant accounts. */
+  mustChangePassword?: boolean
 }
 
 interface LoginResponse {
@@ -21,6 +23,7 @@ interface AuthContextValue {
   role: Role | null
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<AuthUser>
+  completePasswordSetup: (updatedUser?: AuthUser) => void
   logout: () => void
 }
 
@@ -115,6 +118,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const completePasswordSetup = useCallback((updatedUser?: AuthUser) => {
+    setUser((currentUser) => {
+      if (!currentUser) return currentUser
+      const nextUser = { ...currentUser, ...updatedUser, mustChangePassword: false }
+      localStorage.setItem(USER_KEY, JSON.stringify(nextUser))
+      return nextUser
+    })
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -122,9 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: user?.role ?? null,
       isAuthenticated: Boolean(token && user),
       login,
+      completePasswordSetup,
       logout,
     }),
-    [user, token, login, logout],
+    [user, token, login, completePasswordSetup, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

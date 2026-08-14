@@ -14,6 +14,8 @@ import { MaintenanceNew } from './routes/tenant/MaintenanceNew'
 import { Announcements } from './routes/tenant/Announcements'
 import { Notifications } from './routes/tenant/Notifications'
 import { Calendar } from './routes/tenant/Calendar'
+import { AccountSetup } from './routes/tenant/AccountSetup'
+import { TenantSetupGuard } from './routes/tenant/TenantSetupGuard'
 
 function App() {
   return (
@@ -36,10 +38,21 @@ function App() {
         </Route>
 
         <Route
+          path="/tenant/account-setup"
+          element={
+            <ProtectedRoute requiredRole="tenant">
+              <AccountSetup />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/tenant"
           element={
             <ProtectedRoute requiredRole="tenant">
-              <Layout />
+              <TenantSetupGuard>
+                <Layout />
+              </TenantSetupGuard>
             </ProtectedRoute>
           }
         >
