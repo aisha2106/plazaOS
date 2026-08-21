@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "seed": "tsx scripts/seed.ts",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
+    "test:email": "tsx scripts/test-email.ts",
+    "test:cloudinary": "tsx scripts/test-cloudinary.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
+    "dotenv": "^17.4.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.2",
+    "next": "16.3.0",
+    "pdfkit": "^0.19.1",
+    "resend": "^6.19.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
+    "@types/react": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.10"
+  }
+}
