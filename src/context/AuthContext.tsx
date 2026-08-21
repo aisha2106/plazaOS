@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, api, clearToken, getToken, setToken } from '../lib/api'
 
 export type Role = 'admin' | 'tenant'
@@ -17,7 +17,7 @@ interface LoginResponse {
   user: AuthUser
 }
 
-interface AuthContextValue {
+export interface AuthContextValue {
   user: AuthUser | null
   token: string | null
   role: Role | null
@@ -30,6 +30,8 @@ interface AuthContextValue {
 const USER_KEY = 'plaza_os_user'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+export { AuthContext }
 
 function readStoredUser(): AuthUser | null {
   const raw = localStorage.getItem(USER_KEY)
@@ -45,7 +47,7 @@ function isApiError(value: unknown): value is ApiError {
   return value instanceof ApiError
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children?: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => getToken())
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser())
 

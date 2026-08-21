@@ -3,6 +3,7 @@ import { Layout } from './components'
 import { AuthProvider } from './context/AuthContext'
 import { AdminHome } from './routes/admin/AdminHome'
 import { DevKit } from './routes/dev/DevKit'
+import { Landing } from './routes/Landing'
 import { Login } from './routes/Login'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { TenantHome } from './routes/tenant/TenantHome'
@@ -21,6 +22,7 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
 
         {/* TODO: remove before shipping — see DevKit.tsx */}

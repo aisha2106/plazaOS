@@ -37,9 +37,9 @@ export function Layout() {
   return (
     <div className="flex min-h-screen bg-slate-200/20">
       <aside className="flex w-60 flex-col border-r border-slate-200 bg-white p-4">
-        <Text variant="h2" className="mb-6 text-primary">
-          Plaza OS
-        </Text>
+        <div className="mb-6">
+          <img src="/PlazaOS%20logo.png" alt="PlazaOS" className="h-8 w-auto" />
+        </div>
         <nav className="flex flex-1 flex-col gap-1">
           {navItems.map((item) => (
             <NavLink
