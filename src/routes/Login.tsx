@@ -1,71 +1,183 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Button, Card, Input, Text } from '../components'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ApiError } from '../lib/api'
+import { AuthShell } from './AuthShell'
+
+type Role = 'admin' | 'tenant'
+
+interface SignedInUser {
+  name: string
+  role: Role
+  unit?: string // tenants have one; admins don't
+}
+
+interface LoginFormProps {
+  /** Plug our existing auth call in here. Should throw on failure. */
+  onSignIn: (email: string, password: string) => Promise<SignedInUser>
+  /** Called after the welcome beat — navigate to the dashboard here. */
+  onComplete: (user: SignedInUser) => void
+}
+
+const WELCOME_MS = 2200
+
+function LoginForm({ onSignIn, onComplete }: LoginFormProps) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useState<SignedInUser | null>(null)
+  const welcomeTimeoutRef = useRef<number | null>(null)
+
+  // Hold the welcome state briefly, then hand off.
+  useEffect(() => {
+    if (!user) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    welcomeTimeoutRef.current = window.setTimeout(() => onComplete(user), reduced ? 0 : WELCOME_MS)
+    return () => {
+      if (welcomeTimeoutRef.current !== null) window.clearTimeout(welcomeTimeoutRef.current)
+    }
+  }, [user, onComplete])
+
+  // Lets an impatient user skip the rest of the welcome beat instead of waiting it out.
+  function handleSkipWelcome() {
+    if (!user) return
+    if (welcomeTimeoutRef.current !== null) window.clearTimeout(welcomeTimeoutRef.current)
+    onComplete(user)
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (submitting) return
+    setError(null)
+    setSubmitting(true)
+    try {
+      const signedIn = await onSignIn(email.trim(), password)
+      setUser(signedIn)
+    } catch {
+      // Deliberately generic: never reveal which field was wrong.
+      setError('Email or password is incorrect. Check both and try again.')
+      setSubmitting(false)
+    }
+  }
+
+  const plate = user
+    ? user.role === 'tenant'
+      ? user.unit
+        ? `UNIT ${user.unit} · TENANT`
+        : 'TENANT · PLAZA OS'
+      : 'ADMIN · PLAZA OS'
+    : 'PLAZA OS · SIGN IN'
+
+  return (
+    <AuthShell plateLabel={plate} plateVariant={user ? 'success' : 'default'}>
+      {user ? (
+        /* ---------- Welcome state ---------- */
+        <div className="cursor-pointer py-6 text-center" onClick={handleSkipWelcome}>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#6B6B7D]">Welcome back</p>
+          <p className="mt-3 font-display text-3xl font-bold tracking-tight text-[#16161F]">{user.name}</p>
+          <p className="mt-4 text-sm text-[#6B6B7D]">Taking you to your dashboard…</p>
+        </div>
+      ) : (
+        /* ---------- Sign-in state ---------- */
+        <>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-[#16161F]">Sign in</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[#6B6B7D]">First time? Use the password from your welcome email.</p>
+
+          <form onSubmit={handleSubmit} className="mt-7 space-y-5" noValidate>
+            <div>
+              <label htmlFor="email" className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-[#6B6B7D]">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? 'signin-error' : undefined}
+                className="w-full rounded-lg border border-[#E6E6EF] bg-white px-4 py-3 text-[15px] text-[#16161F] outline-none transition-colors placeholder:text-[#A8A8B8] focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-baseline justify-between">
+                <label htmlFor="password" className="block font-mono text-[11px] uppercase tracking-[0.14em] text-[#6B6B7D]">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="font-mono text-[11px] uppercase tracking-[0.14em] text-primary hover:underline"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? 'signin-error' : undefined}
+                className="w-full rounded-lg border border-[#E6E6EF] bg-white px-4 py-3 text-[15px] text-[#16161F] outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            {error && (
+              <p id="signin-error" role="alert" className="rounded-lg border border-[#F0D4D4] bg-[#FDF5F5] px-4 py-3 text-sm text-[#9B2C2C]">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-lg bg-primary px-4 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-primary-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+
+          <p className="mt-6 border-t border-[#E6E6EF] pt-5 text-[13px] leading-relaxed text-[#6B6B7D]">
+            Forgotten your password?{' '}
+            <Link to="/forgot-password" className="font-medium text-primary hover:underline">
+              Reset it
+            </Link>
+            .
+          </p>
+        </>
+      )}
+    </AuthShell>
+  )
+}
 
 /**
- * Single login form for both roles — the backend response decides whether
- * the user lands on /admin or /tenant, there is no role picker here.
+ * Wires the presentational form above to our real auth call and post-login
+ * routing — the form itself never touches AuthContext or the router.
  */
 export function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
-    try {
+  const handleSignIn = useCallback(
+    async (email: string, password: string): Promise<SignedInUser> => {
       const user = await login(email, password)
-      navigate(`/${user.role}`, { replace: true })
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to log in. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-200/40 px-4">
-      <Card className="w-full max-w-sm">
-        <Text variant="h1" className="mb-1 text-slate-900">
-          Plaza OS
-        </Text>
-        <Text variant="body" className="mb-6 text-slate-500">
-          Sign in to continue
-        </Text>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-          {error ? (
-            <Text variant="bodySmall" className="text-danger">
-              {error}
-            </Text>
-          ) : null}
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </form>
-      </Card>
-    </div>
+      return { name: user.name, role: user.role }
+    },
+    [login],
   )
+
+  const handleComplete = useCallback(
+    (user: SignedInUser) => {
+      navigate(user.role === 'admin' ? '/admin/dashboard' : '/tenant', { replace: true })
+    },
+    [navigate],
+  )
+
+  return <LoginForm onSignIn={handleSignIn} onComplete={handleComplete} />
 }

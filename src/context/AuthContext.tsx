@@ -29,15 +29,6 @@ interface AuthContextValue {
 
 const USER_KEY = 'plaza_os_user'
 
-// TODO: remove once the real backend's /auth/login is reachable — this lets
-// the app be exercised locally without a live login API.
-// mustChangePassword: true on the tenant so the dev login shortcut can
-// exercise the tenant first-login password-set gate end to end.
-const MOCK_USERS: Record<Role, AuthUser> = {
-  admin: { id: 'dev-admin', name: 'Dev Admin', email: 'admin@plaza.test', role: 'admin' },
-  tenant: { id: 'dev-tenant', name: 'Dev Tenant', email: 'tenant@plaza.test', role: 'tenant', mustChangePassword: true },
-}
-
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 function readStoredUser(): AuthUser | null {
@@ -116,14 +107,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // TODO: remove once the real backend's /auth/login is reachable — this
+  // lets the app be exercised locally without a live login API.
+  //
+  // MOCK_USERS lives inside this `if` rather than at module scope so that
+  // import.meta.env.DEV folds to a literal `false` in a production build and
+  // esbuild drops the whole block — including the literal admin/tenant
+  // emails — instead of just skipping it at runtime. A guard in front of an
+  // unchanged module-level constant would still ship the constant.
   const loginAsMock = useCallback((role: Role) => {
-    const mockUser = MOCK_USERS[role]
-    const mockToken = `dev-mock-token-${role}`
-    setToken(mockToken)
-    localStorage.setItem(USER_KEY, JSON.stringify(mockUser))
-    setTokenState(mockToken)
-    setUser(mockUser)
-    return mockUser
+    if (import.meta.env.DEV) {
+      // mustChangePassword: true on the tenant so the dev login shortcut can
+      // exercise the tenant first-login password-set gate end to end.
+      const MOCK_USERS: Record<Role, AuthUser> = {
+        admin: { id: 'dev-admin', name: 'Dev Admin', email: 'admin@plaza.test', role: 'admin' },
+        tenant: { id: 'dev-tenant', name: 'Dev Tenant', email: 'tenant@plaza.test', role: 'tenant', mustChangePassword: true },
+      }
+      const mockUser = MOCK_USERS[role]
+      const mockToken = `dev-mock-token-${role}`
+      setToken(mockToken)
+      localStorage.setItem(USER_KEY, JSON.stringify(mockUser))
+      setTokenState(mockToken)
+      setUser(mockUser)
+      return mockUser
+    }
+    throw new Error('loginAsMock is only available in development')
   }, [])
 
   const completePasswordSetup = useCallback(() => {
