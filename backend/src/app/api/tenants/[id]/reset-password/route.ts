@@ -4,6 +4,7 @@ import { User } from '@/models/User'
 import { ApiError } from '@/lib/api-error'
 import { generateTempPassword, hashPassword } from '@/lib/password'
 import { withErrorHandling, requireRole, OPTIONS as corsOptions } from '@/lib/route-handler'
+import { rateLimit } from '@/lib/rate-limit'
 
 export { corsOptions as OPTIONS }
 
@@ -11,8 +12,11 @@ export { corsOptions as OPTIONS }
 // server-side, hashed before storing, and returned in plaintext exactly once
 // in this response — never logged or stored. See BACKEND_BUILD_PLAN.md §2/§13.
 export const POST = withErrorHandling(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
-  requireRole(request, 'admin')
+  const auth = requireRole(request, 'admin')
   const { id } = await params
+  // Same per-actor rate-limit class as /auth/set-password — bounds how fast
+  // one admin (compromised or scripted) can spam password resets/emails.
+  rateLimit(`reset-password:${auth.sub}`, 5, 15 * 60_000)
 
   await dbConnect()
   const user = await User.findOne({ _id: id, role: 'tenant' }).catch(() => null)
