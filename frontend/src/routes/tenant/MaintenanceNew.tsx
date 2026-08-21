@@ -10,7 +10,7 @@ const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
 const MAX_IMAGES = 5
 
 export function MaintenanceNew() {
-  const { register, handleSubmit } = useForm<FormValues>()
+  const { register, handleSubmit, formState } = useForm<FormValues>()
   const [images, setImages] = useState<File[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
   const { create } = useMaintenance()
@@ -59,14 +59,19 @@ export function MaintenanceNew() {
     setImages((prev) => [...prev, ...arr])
   }
 
-  const isSubmitting = create.status === 'pending'
+  const isSubmitting = create.isPending
 
   return (
     <div className="px-4 sm:px-6">
       <Text variant="h1">New Maintenance Request</Text>
       <Card className="mt-4">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <Input label="Title" {...register('title', { required: true })} disabled={isSubmitting} />
+          <Input
+            label="Title"
+            {...register('title', { required: 'Title is required.' })}
+            disabled={isSubmitting}
+            error={formState.errors.title?.message}
+          />
           <Input label="Description" {...register('description')} disabled={isSubmitting} />
           <Input label="Priority" {...register('priority')} disabled={isSubmitting} />
 
@@ -78,7 +83,7 @@ export function MaintenanceNew() {
               accept="image/*"
               onChange={(e) => handleFiles(e.target.files)}
               className="mt-2 w-full text-sm"
-              disabled={isSubmitting}
+              disabled={isSubmitting || images.length >= MAX_IMAGES}
             />
             <div className="mt-2 flex flex-wrap gap-2">
               {previewUrls.map((src, i) => (
@@ -89,7 +94,11 @@ export function MaintenanceNew() {
               <Text variant="bodySmall" className="mt-2 text-danger">
                 {imageError}
               </Text>
-            ) : null}
+            ) : (
+              <Text variant="bodySmall" className="mt-2 text-slate-500">
+                Up to {MAX_IMAGES} images, 5 MB each.
+              </Text>
+            )}
           </div>
 
           <div className="flex justify-end">

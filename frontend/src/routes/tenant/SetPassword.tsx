@@ -1,29 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-<<<<<<< HEAD:src/routes/tenant/SetPassword.tsx
-import { useAuth } from '../../context/AuthContext'
-import { updateTenant } from '../admin/tenants/data'
 import { AuthShell } from '../AuthShell'
-
-// TODO: once the real backend exists, this should call a dedicated
-// POST /auth/set-password endpoint (which clears mustChangePassword
-// server-side) instead of calling updateTenant() directly from here. That
-// endpoint should also reject a new password matching the current one —
-// only the server holds the current password (hash) to compare against, so
-// that check can't be done from here.
-//
-// NOTE: PRODUCT.md's route map has tenant home at /tenant, not
-// /tenant/dashboard (same gap as /admin vs /admin/dashboard) — redirecting
-// to /tenant/dashboard here would 404 against the routes actually
-// registered in App.tsx, so this redirects to /tenant instead.
-=======
-import { Button, Card, Input, Text } from '../../components'
 import { useAuth } from '../../context/useAuth'
 import { authService } from '../../lib/services/authService'
 
 // Redirects to bare /tenant, which redirects to /tenant/dashboard (same
 // pattern as /admin → /admin/dashboard) — both are valid, registered routes.
->>>>>>> origin/production-ready-plazaos:frontend/src/routes/tenant/SetPassword.tsx
 export function SetPassword() {
   const { completePasswordSetup } = useAuth()
   const navigate = useNavigate()

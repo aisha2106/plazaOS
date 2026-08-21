@@ -1,7 +1,6 @@
-<<<<<<< HEAD:src/routes/Login.tsx
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { AuthShell } from './AuthShell'
 
 type Role = 'admin' | 'tenant'
@@ -10,6 +9,7 @@ interface SignedInUser {
   name: string
   role: Role
   unit?: string // tenants have one; admins don't
+  mustChangePassword?: boolean
 }
 
 interface LoginFormProps {
@@ -156,13 +156,6 @@ function LoginForm({ onSignIn, onComplete }: LoginFormProps) {
     </AuthShell>
   )
 }
-=======
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Button, Card, Input, Text } from '../components'
-import { useAuth } from '../context/useAuth'
-import { ApiError } from '../lib/api'
->>>>>>> origin/production-ready-plazaos:frontend/src/routes/Login.tsx
 
 /**
  * Wires the presentational form above to our real auth call and post-login
@@ -175,13 +168,17 @@ export function Login() {
   const handleSignIn = useCallback(
     async (email: string, password: string): Promise<SignedInUser> => {
       const user = await login(email, password)
-      return { name: user.name, role: user.role }
+      return { name: user.name, role: user.role, mustChangePassword: user.mustChangePassword }
     },
     [login],
   )
 
   const handleComplete = useCallback(
     (user: SignedInUser) => {
+      if (user.role === 'tenant' && user.mustChangePassword) {
+        navigate('/tenant/account-setup', { replace: true })
+        return
+      }
       navigate(user.role === 'admin' ? '/admin/dashboard' : '/tenant', { replace: true })
     },
     [navigate],

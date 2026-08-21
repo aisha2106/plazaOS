@@ -27,11 +27,11 @@ function generateToken(): string {
  * doesn't. Callers must show the same confirmation either way — never reveal
  * which emails have accounts.
  */
-export function requestPasswordReset(email: string): string | null {
+export async function requestPasswordReset(email: string): Promise<string | null> {
   const normalized = email.trim().toLowerCase()
   if (!normalized) return null
 
-  const { data } = getTenants({ search: normalized, pageSize: 1000 })
+  const { data } = await getTenants({ search: normalized, pageSize: 1000 })
   const tenant = data.find((candidate) => candidate.email.toLowerCase() === normalized)
   if (!tenant) return null
 

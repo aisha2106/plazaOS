@@ -15,14 +15,8 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-<<<<<<< HEAD:src/components/Layout.tsx
-import { useAuth, type Role } from '../context/AuthContext'
-=======
 import { useAuth } from '../context/useAuth'
 import type { Role } from '../context/AuthContext'
-import { Button } from './Button'
-import { Text } from './Text'
->>>>>>> origin/production-ready-plazaos:frontend/src/components/Layout.tsx
 
 interface NavItem {
   label: string
@@ -35,7 +29,6 @@ interface NavItem {
 
 const NAV_ITEMS: Record<Role, NavItem[]> = {
   admin: [
-<<<<<<< HEAD:src/components/Layout.tsx
     { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'Units', to: '/admin/units', icon: Building2 },
     { label: 'Tenants', to: '/admin/tenants', icon: Users },
@@ -43,6 +36,7 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     { label: 'Announcements', to: '/admin/announcements', icon: Megaphone },
     { label: 'Reminders', to: '/admin/reminders', icon: Bell },
     { label: 'Calendar', to: '/admin/calendar', icon: CalendarDays },
+    { label: 'Notifications', to: '/admin/notifications', icon: Bell },
   ],
   tenant: [
     { label: 'Home', to: '/tenant', icon: Home, end: true },
@@ -51,25 +45,7 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     { label: 'Maintenance', to: '/tenant/maintenance', icon: Wrench },
     { label: 'Announcements', to: '/tenant/announcements', icon: Megaphone },
     { label: 'Notifications', to: '/tenant/notifications', icon: Bell },
-=======
-    { label: 'Dashboard', to: '/admin' },
-    { label: 'Units', to: '/admin/units' },
-    { label: 'Tenants', to: '/admin/tenants' },
-    { label: 'Maintenance', to: '/admin/maintenance' },
-    { label: 'Announcements', to: '/admin/announcements' },
-    { label: 'Reminders', to: '/admin/reminders' },
-    { label: 'Calendar', to: '/admin/calendar' },
-    { label: 'Notifications', to: '/admin/notifications' },
-  ],
-  tenant: [
-    { label: 'Home', to: '/tenant' },
-    { label: 'Profile', to: '/tenant/profile' },
-    { label: 'Payments', to: '/tenant/payments' },
-    { label: 'Maintenance', to: '/tenant/maintenance' },
-    { label: 'Announcements', to: '/tenant/announcements' },
-    { label: 'Notifications', to: '/tenant/notifications' },
-    { label: 'Calendar', to: '/tenant/calendar' },
->>>>>>> origin/production-ready-plazaos:frontend/src/components/Layout.tsx
+    { label: 'Calendar', to: '/tenant/calendar', icon: CalendarDays },
   ],
 }
 

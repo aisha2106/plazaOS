@@ -22,7 +22,9 @@ export function Notifications() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Text variant="h1">Notifications</Text>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => markAll.mutate()}>Mark all read</Button>
+          <Button variant="secondary" onClick={() => markAll.mutate()} disabled={markAll.isPending || (data?.every((notification) => notification.read) ?? true)}>
+            {markAll.isPending ? 'Marking…' : 'Mark all read'}
+          </Button>
         </div>
       </div>
       <Card>
@@ -51,7 +53,7 @@ export function Notifications() {
                           <Text variant="bodySmall" className="text-slate-500">{n.type}</Text>
                         </div>
                         {!n.read ? (
-                          <Button variant="secondary" onClick={() => markRead.mutate(n.id)}>Mark read</Button>
+                          <Button variant="secondary" onClick={() => markRead.mutate(n.id)} disabled={markRead.isPending}>Mark read</Button>
                         ) : null}
                       </div>
                     ))}
@@ -61,6 +63,7 @@ export function Notifications() {
             )}
           </div>
         )}
+        {markRead.isError || markAll.isError ? <Text variant="bodySmall" className="mt-3 text-danger">Unable to update notifications. Please try again.</Text> : null}
       </Card>
     </div>
   )

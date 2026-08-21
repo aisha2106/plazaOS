@@ -144,8 +144,7 @@ export function Payments() {
             <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
               Prev
             </Button>
-            <Button onClick={() => setPage((p) => p + 1)} disabled={!hasMore}>
-              Next
+            <Button onClick={() => setPage((p) => p + 1)} disabled={!hasMore}>              Next
             </Button>
           </div>
           <Text variant="bodySmall">Page {page}</Text>

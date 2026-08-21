@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { api, clearToken, getToken, setToken } from '../lib/api'
+import { ApiError, api, clearToken, getToken, setToken } from '../lib/api'
 import { AuthContext, type AuthContextValue, type AuthUser, type Role } from './AuthContext'
 
 interface LoginResponse {
@@ -18,6 +18,8 @@ const MOCK_USERS: Record<Role, AuthUser> = {
   tenant: { id: 'dev-tenant', name: 'Dev Tenant', email: 'tenant@plaza.test', role: 'tenant', mustChangePassword: true },
 }
 
+export { AuthContext }
+
 function readStoredUser(): AuthUser | null {
   const raw = localStorage.getItem(USER_KEY)
   if (!raw) return null
@@ -28,7 +30,11 @@ function readStoredUser(): AuthUser | null {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+function isApiError(value: unknown): value is ApiError {
+  return value instanceof ApiError
+}
+
+export function AuthProvider({ children }: { children?: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => getToken())
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser())
 
@@ -47,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check if the error is a network/connectivity issue or 404 (API not available)
       const isNetworkError = err instanceof TypeError || (err instanceof Error && /failed to fetch/i.test(err.message))
-      const isNotFound = (err as any)?.status === 404
+      const isNotFound = isApiError(err) && err.status === 404
 
       if (isDev && (isNetworkError || isNotFound)) {
         // Console log for debugging (development only)
@@ -104,12 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return mockUser
   }, [])
 
-  const completePasswordSetup = useCallback(() => {
-    setUser((current) => {
-      if (!current) return current
-      const updated: AuthUser = { ...current, mustChangePassword: false }
-      localStorage.setItem(USER_KEY, JSON.stringify(updated))
-      return updated
+  const completePasswordSetup = useCallback((updatedUser?: AuthUser) => {
+    setUser((currentUser) => {
+      if (!currentUser) return currentUser
+      const nextUser = { ...currentUser, ...updatedUser, mustChangePassword: false }
+      localStorage.setItem(USER_KEY, JSON.stringify(nextUser))
+      return nextUser
     })
   }, [])
 
