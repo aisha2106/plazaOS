@@ -9,7 +9,7 @@ export function ForgotPassword() {
   const [submitted, setSubmitted] = useState(false)
   const [devToken, setDevToken] = useState<string | null>(null)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (submitting) return
     setSubmitting(true)
@@ -17,7 +17,7 @@ export function ForgotPassword() {
     // TODO: becomes POST /auth/forgot-password once the backend exists — it
     // must respond identically regardless of match, and send the email
     // itself instead of this dev-only reveal below.
-    const token = requestPasswordReset(email)
+    const token = await requestPasswordReset(email)
 
     window.setTimeout(() => {
       setSubmitting(false)
