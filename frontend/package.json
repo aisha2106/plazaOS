@@ -12,6 +12,11 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
+<<<<<<< HEAD:package.json
+    "lottie-react": "^3.1.0",
+    "lucide-react": "^1.33.0",
+=======
+>>>>>>> origin/production-ready-plazaos:frontend/package.json
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.45.0",
