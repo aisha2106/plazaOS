@@ -7,17 +7,17 @@ interface StatusBadgeProps {
 }
 
 const variantClasses: Record<StatusVariant, string> = {
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/10 text-warning',
-  danger: 'bg-danger/10 text-danger',
-  info: 'bg-info/10 text-info',
+  success: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+  warning: 'bg-amber-100 text-amber-800 border border-amber-300',
+  danger: 'bg-red-100 text-red-800 border border-red-300',
+  info: 'bg-blue-100 text-blue-800 border border-blue-300',
 }
 
 /** Pill badge: light-tint background + full-opacity text, always paired with a label — never color alone. */
 export function StatusBadge({ variant, label, className = '' }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${variantClasses[variant]} ${className}`}
     >
       {label}
     </span>

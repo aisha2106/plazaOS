@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { useAuth, type Role } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
+import { type Role } from '../context/AuthContext'
 import { Button } from './Button'
 import { Text } from './Text'
 

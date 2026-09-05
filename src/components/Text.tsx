@@ -3,13 +3,13 @@ import type { ElementType, ReactNode } from 'react'
 export type TextVariant = 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'bodySmall' | 'caption' | 'button'
 
 const variantClasses: Record<TextVariant, string> = {
-  display: 'text-[28px] leading-[1.3] font-bold',
-  h1: 'text-2xl leading-[1.3] font-bold',
-  h2: 'text-xl leading-[1.3] font-semibold',
+  display: 'text-3xl leading-[1.2] font-bold tracking-tight',
+  h1: 'text-2xl leading-[1.3] font-bold tracking-tight',
+  h2: 'text-xl leading-[1.3] font-semibold tracking-tight',
   h3: 'text-base leading-[1.4] font-semibold',
-  body: 'text-[15px] leading-[1.5] font-normal',
+  body: 'text-[15px] leading-[1.6] font-normal',
   bodySmall: 'text-[13px] leading-[1.5] font-normal',
-  caption: 'text-xs leading-[1.4] font-medium',
+  caption: 'text-xs leading-[1.4] font-medium uppercase tracking-wide',
   button: 'text-[15px] leading-none font-semibold',
 }
 

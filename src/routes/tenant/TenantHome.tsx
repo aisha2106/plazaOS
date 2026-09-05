@@ -6,6 +6,7 @@ import { usePayments } from '../../hooks/usePayments'
 import { useMaintenance } from '../../hooks/useMaintenance'
 import { useAnnouncements } from '../../hooks/useAnnouncements'
 import { useNotifications } from '../../hooks/useNotifications'
+import { formatNaira, formatDate } from '../../lib/formatting'
 import type { Payment, Announcement, NotificationItem, MaintenanceRequest, MaintenanceStatus } from '../../lib/types'
 
 const maintenanceStatusVariantMap: Record<MaintenanceStatus, 'info' | 'warning' | 'success'> = {
@@ -65,7 +66,7 @@ export function TenantHome() {
             ) : null}
             <div className="flex items-center justify-between">
               <Text variant="body">Monthly rent</Text>
-              <Text variant="body">{profile?.monthlyRent != null ? `$${profile.monthlyRent}` : 'Unavailable'}</Text>
+              <Text variant="body">{profile?.monthlyRent != null ? formatNaira(profile.monthlyRent) : 'Unavailable'}</Text>
             </div>
             <div className="flex items-center justify-between">
               <Text variant="body">Next due</Text>
@@ -73,7 +74,7 @@ export function TenantHome() {
             </div>
             <div className="flex items-center justify-between">
               <Text variant="body">Balance</Text>
-              <Text variant="body">{profile?.balance != null ? `$${profile.balance}` : 'Unavailable'}</Text>
+              <Text variant="body">{profile?.balance != null ? formatNaira(profile.balance) : 'Unavailable'}</Text>
             </div>
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div>
@@ -102,7 +103,14 @@ export function TenantHome() {
               </div>
             ) : (
               <Table<Payment>
-                columns={[{ key: 'date', header: 'Date' }, { key: 'amount', header: 'Amount' }]}
+                columns={[
+                  { key: 'date', header: 'Date' },
+                  {
+                    key: 'amount',
+                    header: 'Amount',
+                    render: (row: Payment) => formatNaira(row.amount),
+                  },
+                ]}
                 data={recentPayments}
                 getRowKey={(r) => r.id}
               />
@@ -164,7 +172,7 @@ export function TenantHome() {
               <div key={n.id} className={`flex flex-col gap-2 rounded border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between ${n.read ? 'opacity-60' : ''}`}>
                 <div className="min-w-0">
                   <Text variant="body" className="truncate">{n.title}</Text>
-                  <Text variant="bodySmall" className="text-slate-500">{n.date}</Text>
+                  <Text variant="bodySmall" className="text-slate-500">{formatDate(n.date)}</Text>
                 </div>
                 <div className="text-xs text-slate-500">{n.type}</div>
               </div>

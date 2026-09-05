@@ -54,16 +54,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={handleOverlayClick}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={handleOverlayClick}>
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         tabIndex={-1}
-        className="w-full max-w-md rounded-card border border-slate-200 bg-white p-4 shadow-lg focus:outline-none"
+        className="w-full max-w-md rounded-card border border-slate-200 bg-white p-6 shadow-2xl focus:outline-none"
       >
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <h2 id="modal-title" className="text-xl font-semibold text-slate-900">
             {title}
           </h2>
@@ -71,7 +71,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-11 w-11 items-center justify-center rounded-button text-slate-500 hover:bg-slate-200/60"
+            className="flex h-10 w-10 items-center justify-center rounded-button text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
           >
             ✕
           </button>

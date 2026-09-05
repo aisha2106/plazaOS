@@ -1,5 +1,6 @@
-import { createContext, useContext, useCallback, useMemo, useState, type ReactNode } from 'react'
-import { ApiError, api, clearToken, getToken, setToken } from '../lib/api'
+import { createContext, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { api, clearToken, getToken, setToken } from '../lib/api'
+import { USER_KEY, readStoredUser, isApiError } from './authUtils'
 
 export type Role = 'admin' | 'tenant'
 
@@ -27,25 +28,9 @@ export interface AuthContextValue {
   logout: () => void
 }
 
-const USER_KEY = 'plaza_os_user'
-
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export { AuthContext }
-
-function readStoredUser(): AuthUser | null {
-  const raw = localStorage.getItem(USER_KEY)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as AuthUser
-  } catch {
-    return null
-  }
-}
-
-function isApiError(value: unknown): value is ApiError {
-  return value instanceof ApiError
-}
 
 export function AuthProvider({ children }: { children?: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => getToken())
@@ -143,10 +128,4 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext)
-  if (!context) throw new Error('useAuth must be used within an AuthProvider')
-  return context
 }

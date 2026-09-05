@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Input, Text } from '../../components'
-import { useAuth, type AuthUser } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
+import { type AuthUser } from '../../context/AuthContext'
 import { useChangePassword } from '../../hooks/useChangePassword'
 import { ApiError } from '../../lib/api'
 
@@ -62,14 +63,17 @@ export function AccountSetup() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-200/40 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50/50 to-slate-100/50 px-4 py-8">
       <Card className="w-full max-w-md">
-        <Text variant="h1">Secure your account</Text>
-        <Text variant="body" className="mt-2 text-slate-500">
-          Your account was created by an administrator. For your privacy and security, please create your own password before continuing.
-        </Text>
+        <div className="text-center">
+          <Text variant="display">🔐</Text>
+          <Text variant="h1" className="mt-2">Secure your account</Text>
+          <Text variant="body" className="mt-3 text-slate-600 leading-relaxed">
+            Your account was created by an administrator. For your privacy and security, please create your own password before continuing.
+          </Text>
+        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
           <Input
             label="Current or temporary password"
             type={showCurrentPassword ? 'text' : 'password'}
@@ -166,12 +170,33 @@ export function AccountSetup() {
               validate: (value) => value === newPassword || 'Passwords do not match.',
             })}
           />
-          <Text variant="bodySmall" className="text-slate-500">
-            Password requirements: use at least {MIN_PASSWORD_LENGTH} characters and confirm the same password.
-          </Text>
-          {changePassword.isError ? <Text variant="bodySmall" className="text-danger">{getErrorMessage(changePassword.error)}</Text> : null}
-          {changePassword.isSuccess ? <Text variant="bodySmall" className="text-success">Account secured. Redirecting…</Text> : null}
-          <Button type="submit" disabled={changePassword.isPending || isComplete} className="w-full">
+
+          <div className="rounded-button border border-blue-200 bg-blue-50 p-3">
+            <Text variant="bodySmall" className="text-blue-900 font-medium">
+              📋 Password requirements:
+            </Text>
+            <Text variant="caption" className="mt-1 text-blue-800">
+              Use at least {MIN_PASSWORD_LENGTH} characters and confirm the password
+            </Text>
+          </div>
+
+          {changePassword.isError && (
+            <div className="rounded-button border border-red-200 bg-red-50 p-3">
+              <Text variant="bodySmall" className="text-danger font-medium">
+                {getErrorMessage(changePassword.error)}
+              </Text>
+            </div>
+          )}
+
+          {changePassword.isSuccess && (
+            <div className="rounded-button border border-emerald-200 bg-emerald-50 p-3">
+              <Text variant="bodySmall" className="text-emerald-900 font-medium">
+                ✓ Account secured. Redirecting…
+              </Text>
+            </div>
+          )}
+
+          <Button type="submit" disabled={changePassword.isPending || isComplete} className="w-full mt-2">
             {changePassword.isPending ? 'Securing account…' : 'Secure my account'}
           </Button>
         </form>

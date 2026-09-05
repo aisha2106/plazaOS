@@ -45,22 +45,22 @@ export function Table<T>({ columns, data, getRowKey, emptyMessage = 'No data ava
   }
 
   return (
-    <div className="overflow-x-auto rounded-card border border-slate-200">
+    <div className="overflow-x-auto rounded-card border border-slate-200 shadow-sm">
       <table className="w-full text-left text-[15px]">
-        <thead className="bg-slate-200/40">
+        <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
           <tr>
             {columns.map((column) => (
               <th
                 key={column.key}
                 scope="col"
                 onClick={() => handleSort(column)}
-                className={`px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500 ${
-                  column.sortable ? 'cursor-pointer select-none' : ''
+                className={`px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-700 ${
+                  column.sortable ? 'cursor-pointer select-none hover:bg-slate-200/50 transition-colors' : ''
                 }`}
               >
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-2">
                   {column.header}
-                  {column.sortable && sortKey === column.key ? (sortDirection === 'asc' ? '▲' : '▼') : null}
+                  {column.sortable && sortKey === column.key ? (sortDirection === 'asc' ? '↑' : '↓') : null}
                 </span>
               </th>
             ))}
@@ -69,15 +69,15 @@ export function Table<T>({ columns, data, getRowKey, emptyMessage = 'No data ava
         <tbody>
           {sortedData.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500">
+              <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-500">
                 {emptyMessage}
               </td>
             </tr>
           ) : (
             sortedData.map((row) => (
-              <tr key={getRowKey(row)} className="border-t border-slate-200">
+              <tr key={getRowKey(row)} className="border-t border-slate-200 hover:bg-slate-50 transition-colors">
                 {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 text-slate-900">
+                  <td key={column.key} className="px-6 py-4 text-slate-900">
                     {column.render ? column.render(row) : String(getCellValue(row, column.key) ?? '')}
                   </td>
                 ))}

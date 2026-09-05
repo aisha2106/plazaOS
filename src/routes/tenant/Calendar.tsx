@@ -1,40 +1,70 @@
 import { Button, Card, Text } from '../../components'
 import { useCalendar } from '../../hooks/useCalendar'
+import { formatDate } from '../../lib/formatting'
 
 export function Calendar() {
   const { data, isLoading, isError, refetch } = useCalendar()
 
   return (
-    <div className="px-4 sm:px-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Text variant="h1">Calendar</Text>
-      </div>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <Text variant="h1" className="mb-8">Calendar</Text>
 
-      <Card>
-        {isLoading ? (
-          <Text variant="body">Loading appointments…</Text>
-        ) : isError ? (
-          <div className="flex items-center justify-between gap-3">
-            <Text variant="bodySmall" className="text-danger">Failed to load calendar events.</Text>
-            <Button variant="secondary" onClick={() => refetch()}>Retry</Button>
+      {isLoading ? (
+        <Card>
+          <div className="flex flex-col items-center justify-center py-12">
+            <Text variant="body" className="text-slate-500">Loading calendar events…</Text>
           </div>
-        ) : data?.length === 0 ? (
-          <Text variant="bodySmall">No calendar events available.</Text>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {data?.map((event) => (
-              <div key={event.id} className="rounded border border-slate-200 bg-slate-50 p-4">
-                <Text variant="h3">{event.title}</Text>
-                <Text variant="bodySmall" className="text-slate-500">
-                  {event.date}{event.time ? ` · ${event.time}` : ''}
-                </Text>
-                {event.location ? <Text variant="bodySmall" className="mt-2">{event.location}</Text> : null}
-                {event.notes ? <Text variant="bodySmall" className="mt-2 text-slate-600">{event.notes}</Text> : null}
+        </Card>
+      ) : isError ? (
+        <Card className="border-red-200 bg-red-50">
+          <div className="flex items-center justify-between">
+            <Text variant="bodySmall" className="text-danger font-medium">Failed to load calendar events.</Text>
+            <Button size="sm" variant="secondary" onClick={() => refetch()}>Retry</Button>
+          </div>
+        </Card>
+      ) : !data || data.length === 0 ? (
+        <Card>
+          <div className="flex flex-col items-center justify-center py-12">
+            <Text variant="h3" className="text-slate-400 mb-2">📅</Text>
+            <Text variant="body" className="text-slate-600">No upcoming events</Text>
+            <Text variant="bodySmall" className="mt-1 text-slate-500">Check back soon for scheduled appointments</Text>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {data.map((event) => (
+            <Card key={event.id} className="flex flex-col transition-all hover:shadow-md">
+              <div className="mb-3 flex items-start justify-between">
+                <Text variant="h3" className="line-clamp-2 flex-1">{event.title}</Text>
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
+
+              <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                <span>📌</span>
+                <Text variant="bodySmall">{formatDate(event.date)}</Text>
+                {event.time && (
+                  <>
+                    <span>·</span>
+                    <Text variant="bodySmall">{event.time}</Text>
+                  </>
+                )}
+              </div>
+
+              {event.location && (
+                <div className="mb-2 flex items-start gap-2">
+                  <span>📍</span>
+                  <Text variant="bodySmall" className="text-slate-700">{event.location}</Text>
+                </div>
+              )}
+
+              {event.notes && (
+                <div className="mt-2 border-t border-slate-200 pt-3">
+                  <Text variant="bodySmall" className="text-slate-600 leading-relaxed">{event.notes}</Text>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
